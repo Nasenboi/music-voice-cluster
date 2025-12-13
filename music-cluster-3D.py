@@ -3,7 +3,7 @@ import marimo
 __generated_with = "0.18.4"
 app = marimo.App(
     width="medium",
-    layout_file="layouts/music-cluster.slides.json",
+    layout_file="layouts/music-cluster-3D.slides.json",
 )
 
 
@@ -36,6 +36,7 @@ def _():
         mo,
         np,
         path,
+        pd,
         torch,
         tqdm,
         umap,
@@ -243,7 +244,7 @@ def _(StandardScaler, music_embeddings):
 @app.cell
 def _(music_embeddings_scaled, umap):
     reducer = umap.UMAP(
-        n_components=2,
+        n_components=3,
         n_neighbors=5,
         min_dist=0.1,
         metric="cosine",
@@ -257,14 +258,42 @@ def _(music_embeddings_scaled, umap):
 def _(mask, np, train_df, umap_embeddings):
     train_df["UMAP_1"] = np.nan
     train_df["UMAP_2"] = np.nan
+    train_df["UMAP_3"] = np.nan
     train_df.loc[mask, "UMAP_1"] = umap_embeddings[:, 0]
     train_df.loc[mask, "UMAP_2"] = umap_embeddings[:, 1]
+    train_df.loc[mask, "UMAP_3"] = umap_embeddings[:, 2]
     return
 
 
 @app.cell
 def _(train_df):
     train_df
+    return
+
+
+@app.cell
+def _(train_df):
+    train_df.to_csv("tracks_df_embedding_3D.csv")
+    return
+
+
+@app.cell
+def _(pd, utils):
+    df = utils.load("tracks_df_embedding_3D.csv")
+    new_columns = list(df.columns)
+    new_columns[-4:] = [
+        ("track", "audio_path"),
+        ("UMAP", "X"),
+        ("UMAP", "Y"),
+        ("UMAP", "Z"),
+    ]
+    df.columns = pd.MultiIndex.from_tuples(new_columns)
+    return (df,)
+
+
+@app.cell
+def _(df):
+    df.columns()
     return
 
 
