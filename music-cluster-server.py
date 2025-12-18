@@ -12,10 +12,11 @@ import utils
 
 load_dotenv()
 
-CSV_PATH = "data/tracks_df_embedding_3D.csv"
+
 PROJECT_FOLDER = getenv("PROJECT_FOLDER")
 METADATA_FOLDER = path.join(PROJECT_FOLDER, "fma_metadata")
 AUDIO_FOLDER = path.join(PROJECT_FOLDER, "fma_large")
+CSV_PATH = path.join(METADATA_FOLDER, "tracks_df_embedding_3D.csv")
 
 df = utils.load(CSV_PATH)
 new_columns = list(df.columns)
