@@ -24,7 +24,12 @@ new_columns[-4:] = [('track', 'audio_path'), ('UMAP', 'X'), ('UMAP', 'Y'), ('UMA
 df.columns = pd.MultiIndex.from_tuples(new_columns)
 df.columns = ['_'.join(col).rstrip('_') for col in df.columns]
 
-color_columns = ["track_genre_top"]
+df["track_audio_path"] = [
+    utils.get_audio_path(AUDIO_FOLDER, i) for i in df.index
+]
+
+color_columns = ["track_genre_top", "album_date_created", "album_date_released", "artist_location"]
+hover_data = ["track_genre_top", "artist_name", "album_title"]
 
 def file_name_to_url(file_name):
     file_name = file_name.replace(AUDIO_FOLDER+"/", "")
@@ -50,7 +55,7 @@ fig = px.scatter_3d(
     y="UMAP_Y", 
     z="UMAP_Z",
     color=color_columns[0],
-    hover_data=["track_genre_top"],
+    hover_data=hover_data,
     custom_data=["track_audio_path"],
 )
 fig.update_layout(
@@ -112,7 +117,7 @@ def updateGraph(selected_color):
         y="UMAP_Y", 
         z="UMAP_Z",
         color=selected_color,
-        hover_data=["track_genre_top"],
+        hover_data=hover_data,
         custom_data=["track_audio_path"],
     )
     fig.update_traces(marker=dict(size=3, opacity=0.9)) 
