@@ -299,10 +299,32 @@ def _(gemaps_distances, plot_correlation_scatter, questions_df):
 
 
 @app.cell
-def _(gemaps_features_df, gemaps_single_f_corr, plot_correlation_heatmap):
+def _(gemaps_distances, plot_correlation_bar, questions_df):
+    gemaps_single_f_corr_20, _ = plot_correlation_bar(
+        title="Individual GeMAPS Features Correlations",
+        feature_df=gemaps_distances,
+        target_feature=questions_df["A_perc"],
+        top_x=20,
+        output=True,
+    )
+    return
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    gemaps_features_df,
+    gemaps_single_f_corr,
+    os,
+    plot_correlation_heatmap,
+):
     plot_correlation_heatmap(
         gemaps_features_df[gemaps_single_f_corr],
-        "Autocorrelation of the Top 15 GeMAPS Features",
+        "Pairwise Pearson Correlation Coefficients (r)",
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "gemaps_corr_pairwise_correlation.png"
+        ),
+        labelsize=12,
     )
     return
 
@@ -368,13 +390,21 @@ def _(questions_df):
 
 
 @app.cell
-def _(gemaps_distances, gender_m_mask, plot_correlation_bar, questions_df):
+def _(
+    PLOT_SAVE_DIR,
+    gemaps_distances,
+    gender_m_mask,
+    os,
+    plot_correlation_bar,
+    questions_df,
+):
     gemaps_f_m, _ = plot_correlation_bar(
         title="GeMAPS Feature Correlations (Male only)",
         feature_df=gemaps_distances[gender_m_mask],
         target_feature=questions_df[gender_m_mask]["A_perc"],
         top_x=10,
         output=True,
+        save_path=os.path.join(PLOT_SAVE_DIR, "gender_m_feature_corr_bar.png"),
     )
     return (gemaps_f_m,)
 
@@ -400,13 +430,21 @@ def _(
 
 
 @app.cell
-def _(gemaps_distances, gender_f_mask, plot_correlation_bar, questions_df):
+def _(
+    PLOT_SAVE_DIR,
+    gemaps_distances,
+    gender_f_mask,
+    os,
+    plot_correlation_bar,
+    questions_df,
+):
     gemaps_f_f, _ = plot_correlation_bar(
         title="GeMAPS Feature Correlations (Female only)",
         feature_df=gemaps_distances[gender_f_mask],
         target_feature=questions_df[gender_f_mask]["A_perc"],
         top_x=10,
         output=True,
+        save_path=os.path.join(PLOT_SAVE_DIR, "gender_f_feature_corr_bar.png"),
     )
     return (gemaps_f_f,)
 
@@ -436,7 +474,8 @@ def _(gemaps_f_f, gemaps_f_m, plot_feature_connection):
         set_2=gemaps_f_f,
         set_1_label="Male",
         set_2_label="Female",
-        title="Different Top Correlation Features Depending on Gender",
+        title="Top Feature Correlations Depending on Gender",
+        # save_path=os.path.join(PLOT_SAVE_DIR, "gender_feature_connections.png")
     )
     return
 

@@ -344,23 +344,36 @@ def plot_correlation_scatter(
     plt.show()
 
 
-def plot_correlation_heatmap(feature_set: pd.DataFrame, title: str = "Feature Correlation", save_path: str = None):
+def plot_correlation_heatmap(
+    feature_set: pd.DataFrame, title: str = "Feature Correlation", save_path: str = None, labelsize: int = 12
+):
     corr = feature_set.corr()
     corr = corr[1:].T[:-1].T
     mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
 
     plt.figure(figsize=(12, 10))
+
+    def formatValue(val):
+        shortened = f"{val:.2f}"[-3:]
+        if val >= 0:
+            return shortened
+        return "-" + shortened
+
+    annot = corr.apply(lambda col: [formatValue(v) for v in col], axis=0)
+
     sns.heatmap(
         corr,
         mask=mask,
-        annot=True,
-        fmt=".2f",
+        annot=annot,
+        fmt="",
         cmap="coolwarm",
         vmin=-1,
         vmax=1,
         linewidths=0.5,
         linecolor="white",
     )
+    ax = plt.gca()
+    ax.tick_params(axis="both", labelsize=labelsize)
 
     plt.title(title)
     # plt.xlabel("Features")
@@ -368,7 +381,6 @@ def plot_correlation_heatmap(feature_set: pd.DataFrame, title: str = "Feature Co
     plt.xticks(rotation=45, ha="right")
     plt.yticks(rotation=0)
     plt.tight_layout()
-    plt.show()
 
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight", dpi=300)

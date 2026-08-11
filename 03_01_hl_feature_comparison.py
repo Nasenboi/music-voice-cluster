@@ -216,8 +216,8 @@ def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_bar, questions_df):
         title="High Level Feature Correlations",
         feature_df=hl_distances,
         target_feature=questions_df["A_perc"],
-        top_x=len(hl_distances.columns),
-        save_path=os.path.join(PLOT_SAVE_DIR, "high_level_feature_correlations")
+        top_x=len(hl_distances.columns)-1,
+        save_path=os.path.join(PLOT_SAVE_DIR, "high_level_feature_correlations"),
     )
     return
 

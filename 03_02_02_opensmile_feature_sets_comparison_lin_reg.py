@@ -68,6 +68,8 @@ def _():
         opensmile,
         os,
         pd,
+        plot_correlation_bar,
+        plot_correlation_heatmap,
         plot_feature_connection,
         scale_df,
     )
@@ -93,7 +95,7 @@ def _(CSV_FOLDER, DATASET_FOLDER, os):
 @app.cell
 def _(PLOT_FOLDER, os):
     PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2")
-    return
+    return (PLOT_SAVE_DIR,)
 
 
 @app.cell
@@ -148,7 +150,9 @@ def _(get_all_distance_differences, questions_df, scale_df, track_df):
             "pred_age_no_trim",
         ],
     )
-    hl_distances = get_all_distance_differences(scaled_track_df, hl_features, questions_df)
+    hl_distances = get_all_distance_differences(
+        scaled_track_df, hl_features, questions_df
+    )
     hl_distances
     return
 
@@ -181,7 +185,9 @@ def _(SAMPLE_RATE, get_trimmed_audio):
 
 @app.cell
 def _(DATASET_FOLDER, os):
-    gemaps_feature_path = os.path.join(DATASET_FOLDER, "fma_large_feature_sets", "survey_2_gemaps.npy")
+    gemaps_feature_path = os.path.join(
+        DATASET_FOLDER, "fma_large_feature_sets", "survey_2_gemaps.npy"
+    )
     return (gemaps_feature_path,)
 
 
@@ -216,6 +222,27 @@ def _(gemaps_feature_path, np, pd, scale_df, smile_gemaps, track_df):
     return (gemaps_features_df,)
 
 
+@app.cell
+def _(gemaps_features_df, get_all_distance_differences, questions_df):
+    gemaps_distances = get_all_distance_differences(
+        gemaps_features_df, gemaps_features_df.columns, questions_df
+    )
+    gemaps_distances
+    return (gemaps_distances,)
+
+
+@app.cell
+def _(gemaps_distances, plot_correlation_bar, questions_df):
+    top_correlating_gemaps_features = plot_correlation_bar(
+        title="GeMAPS Feature Correlations (All)",
+        feature_df=gemaps_distances,
+        target_feature=questions_df["A_perc"],
+        top_x=20,
+        output=True,
+    )
+    return (top_correlating_gemaps_features,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -235,7 +262,10 @@ def _():
 @app.cell
 def _(gemaps_features_df, get_feature_differences, np, questions_df):
     # prepare H and L voices
-    lr_sim_y = (questions_df["A_perc"].apply(lambda x: x if x >= 0.5 else 1 - x).values - 0.5) * 2
+    lr_sim_y = (
+        questions_df["A_perc"].apply(lambda x: x if x >= 0.5 else 1 - x).values
+        - 0.5
+    ) * 2
 
     lr_X = np.stack(
         [
@@ -258,17 +288,57 @@ def _(Lasso, gemaps_features_df, lr_X, lr_sim_y, pd):
 
     y_pred_sim = sim_model.predict(lr_X)
 
-    sim_coef = pd.Series(sim_model.coef_, index=gemaps_features_df.columns).sort_values(ascending=False)
+    sim_coef = pd.Series(
+        sim_model.coef_, index=gemaps_features_df.columns
+    ).sort_values(ascending=False)
 
     sim_coef = sim_coef[sim_coef > 0]
     sim_coef
-    return sim_coef, y_pred_sim
+    return sim_coef, sim_model, y_pred_sim
+
+
+@app.cell
+def _(sim_model):
+    sim_model.intercept_
+    return
 
 
 @app.cell
 def _(lr_sim_y, mean_squared_error, np, r2_score, y_pred_sim):
     print(f"R2 score: {r2_score(lr_sim_y, y_pred_sim):.3f}")
     print(f"RMSE    : {np.sqrt(mean_squared_error(lr_sim_y, y_pred_sim)):.3f}")
+    return
+
+
+@app.cell
+def _(plot_feature_connection, sim_coef, top_correlating_gemaps_features):
+    plot_feature_connection(
+        set_1=sim_coef.index.values,
+        set_2=top_correlating_gemaps_features[0],
+        set_1_label="Similarity Ratings",
+        set_2_label="Top Correlations",
+        top_x=19,
+        title="Lasso Predictors Comparison",
+    )
+    return
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    gemaps_features_df,
+    os,
+    plot_correlation_heatmap,
+    sim_coef,
+):
+    plot_correlation_heatmap(
+        gemaps_features_df[sim_coef.index.values],
+        "Pairwise Pearson Correlation Coefficients (r)",
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "gemaps_lasso_pairwise_correlation.png"
+        ),
+        labelsize=12,
+    )
     return
 
 
@@ -291,23 +361,36 @@ def _(Lasso, gemaps_features_df, pd, track_df):
     lr_X_gender = gemaps_features_df.values
     lr_gender_y = track_df["pred_p_male"]
 
-    gender_model = Lasso(alpha=0.01, positive=True, max_iter=10000)
+    gender_model = Lasso(alpha=0.03, max_iter=10000)
 
     gender_model.fit(lr_X_gender, lr_gender_y)
 
     y_gender_pred = gender_model.predict(lr_X_gender)
 
-    gender_coef = pd.Series(gender_model.coef_, index=gemaps_features_df.columns).sort_values(ascending=False)
+    gender_coef = pd.Series(
+        gender_model.coef_, index=gemaps_features_df.columns
+    )
+    gender_coef = gender_coef.reindex(
+        gender_coef.abs().sort_values(ascending=False).index
+    )
 
-    gender_coef = gender_coef[gender_coef > 0]
-    gender_coef
-    return gender_coef, lr_gender_y, y_gender_pred
+    # gender_coef = gender_coef[gender_coef > 0]
+    gender_coef[abs(gender_coef) > 0]
+    return gender_coef, gender_model, lr_gender_y, y_gender_pred
+
+
+@app.cell
+def _(gender_model):
+    gender_model.intercept_
+    return
 
 
 @app.cell
 def _(lr_gender_y, mean_squared_error, np, r2_score, y_gender_pred):
     print(f"R2 score: {r2_score(lr_gender_y, y_gender_pred):.3f}")
-    print(f"RMSE    : {np.sqrt(mean_squared_error(lr_gender_y, y_gender_pred)):.3f}")
+    print(
+        f"RMSE    : {np.sqrt(mean_squared_error(lr_gender_y, y_gender_pred)):.3f}"
+    )
     return
 
 
@@ -318,8 +401,8 @@ def _(gender_coef, plot_feature_connection, sim_coef):
         set_2=gender_coef.index.values,
         set_1_label="Similarity Ratings",
         set_2_label="Gender Regression",
-        top_x=len(gender_coef),
-        title="Lasso Predictors Comparison"
+        top_x=19,
+        title="Lasso Predictors Comparison",
     )
     return
 
