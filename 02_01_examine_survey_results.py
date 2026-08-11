@@ -38,17 +38,22 @@ def _():
     )
     from src.survey_dataset_helpers import load_survey_data
 
-    return DATASET_FOLDER, load_survey_data, mo, os, pd
+    return CSV_FOLDER, DATASET_FOLDER, load_survey_data, mo, os, pd
 
 
 @app.cell
-def _(DATASET_FOLDER, os):
+def _(CSV_FOLDER, DATASET_FOLDER, os):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
     CSV_PATHS = {
         "participants": os.path.join(SURVEY_FOLDER, "participants.csv"),
         "songs": os.path.join(SURVEY_FOLDER, "songs.csv"),
         "answers": os.path.join(SURVEY_FOLDER, "surveyAnswers.csv"),
         "questions": os.path.join(SURVEY_FOLDER, "surveyQuestions.csv"),
+        "tracks": os.path.join(
+            CSV_FOLDER,
+            "LargeDataset",
+            "dataset_survey_2_final.csv",
+        ),
     }
     return (CSV_PATHS,)
 
@@ -80,6 +85,30 @@ def _(participants_df):
 
 
 @app.cell
+def _(participants_df):
+    participants_df[participants_df.surveyCompleted].describe()
+    return
+
+
+@app.cell
+def _(participants_df):
+    def getDistributions(feature: str):
+        par_df = participants_df[participants_df.surveyCompleted]
+        n = len(par_df)
+        vals = par_df[feature].unique()
+        return {
+            g: [
+                len(par_df[par_df[feature] == g]),
+                round(100 * len(par_df[par_df[feature] == g]) / n, 1),
+            ]
+            for g in vals
+        }
+
+    getDistributions("occupation")
+    return
+
+
+@app.cell
 def _(questions_df):
     questions_df[~questions_df.skip].num_answers.mean()
     return
@@ -89,10 +118,8 @@ def _(questions_df):
 def _(participants_df, pd):
     genre_scores = {}
 
-
     def increase_score(g, v=1):
         genre_scores[g] = genre_scores.get(g, 0) + v
-
 
     participants_df[participants_df.surveyCompleted].genre1.apply(
         lambda g: increase_score(g)
@@ -158,7 +185,9 @@ def _(answers_df, participants_df, questions_df):
 
     Total number of questions: {len(questions_df)} 
     Number of questions with no answers: {
-        questions_df[~questions_df.index.isin(answers_df["questionID"])].shape[0]
+        questions_df[~questions_df.index.isin(answers_df["questionID"])].shape[
+            0
+        ]
     }
     Number of questions with multiple answers: {
         answers_df.groupby("questionID").size().loc[lambda x: x > 1].shape[0]
@@ -166,7 +195,8 @@ def _(answers_df, participants_df, questions_df):
 
     Total number of answers: {len(answers_df)}
     Answer A/B: {ab_ratio_a:.1f}% A; {ab_ratio_b:.1f}% B
-    Instruments on:   {instruments_on_yes:.1f}% Yes; {instruments_on_no:.1f}% No
+    Instruments on:   {instruments_on_yes:.1f}% Yes; {
+        instruments_on_no:.1f}% No
     """)
     return
 
@@ -225,7 +255,9 @@ def _(multi_answer_mask, pe, po, questions_df):
 @app.cell
 def _(multi_answer_mask, pe, po, questions_df, randomized_mask):
     # agreement for random questions:
-    po_rand = questions_df[multi_answer_mask & randomized_mask].agreement.mean()
+    po_rand = questions_df[
+        multi_answer_mask & randomized_mask
+    ].agreement.mean()
 
     kappa_rand = (po - pe) / (1 - pe)
     print(f"""
@@ -281,6 +313,61 @@ def _(instrument_mask1, instrument_mask2, multi_answer_mask, pe, questions_df):
     Number of multiple answers per question with same instrument settings: {len(questions_df[~(instrument_mask1 & instrument_mask2) & multi_answer_mask])}
     Answer agreement (po): {100 * po_i_same:.1f}%
     Cohen's Kappa:    {kappa_i_same:.3f}
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Gender
+    """)
+    return
+
+
+@app.cell
+def _(questions_df):
+    questions_df
+    return
+
+
+@app.cell
+def _(questions_df):
+    # gender_distribution_mask = answers_df.questionID.apply(
+    #    lambda x: questions_df.loc[x].gender_distribution == 0.5
+    # )
+    gender_distribution_mask = questions_df.gender_distribution == 0.5
+    return (gender_distribution_mask,)
+
+
+@app.cell
+def _(gender_distribution_mask, multi_answer_mask, pe, questions_df):
+    po_g_differ = questions_df[
+        gender_distribution_mask & multi_answer_mask
+    ].agreement.mean()
+
+    kappa_g_differ = (po_g_differ - pe) / (1 - pe)
+    print(f"""
+    Different Reference Voice Genders:
+    Number of multiple answers per question with mixed-gender reference voices: {len(questions_df[gender_distribution_mask & multi_answer_mask])}
+    Answer agreement (po): {100 * po_g_differ:.1f}%
+    Cohen's Kappa:    {kappa_g_differ:.3f}
+    """)
+    return
+
+
+@app.cell
+def _(gender_distribution_mask, multi_answer_mask, pe, questions_df):
+    po_g_same = questions_df[
+        ~gender_distribution_mask & multi_answer_mask
+    ].agreement.mean()
+
+    kappa_g_same = (po_g_same - pe) / (1 - pe)
+    print(f"""
+    Same Reference Voice Genders:
+    Number of multiple answers per question with same-gender reference voices: {len(questions_df[~gender_distribution_mask & multi_answer_mask])}
+    Answer agreement (po): {100 * po_g_same:.1f}%
+    Cohen's Kappa:    {kappa_g_same:.3f}
     """)
     return
 

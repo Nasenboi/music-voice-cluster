@@ -164,6 +164,8 @@ def get_distance_row(question, feature_df: pd.DataFrame, distance_algorithm: DIS
         dist_a_2 = canberra(x, a_2)
     else:
         raise NotImplementedError(f"Distance Measure {distance_algorithm} is not implemented yet!")
+    dist_a_1, dist_a_2 = abs(dist_a_1), abs(dist_a_2)
+
     # -1 to 1: -1 => A2 is more similar to X, 1 => A1 is more similar to X
     norm_dist = (dist_a_2 - dist_a_1) / (dist_a_1 + dist_a_2)
     # 0 to 1: 0 => A2 is more similar to X, 1 => A1 is more similar to X

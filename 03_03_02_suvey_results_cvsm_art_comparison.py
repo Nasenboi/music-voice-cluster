@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.13"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
@@ -14,16 +14,23 @@ def _(mo):
 
 @app.cell
 def _():
+    import marimo as mo
+
+    return (mo,)
+
+
+@app.cell
+def _():
     import os
     from typing import List, Literal
     import librosa
-    import marimo as mo
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
     import seaborn as sns
     from sklearn.preprocessing import StandardScaler
     import random
+    from sklearn.decomposition import PCA
 
     os.environ["TF_USE_LEGACY_KERAS"] = "1"
     import tensorflow as tf
@@ -49,6 +56,9 @@ def _():
         plot_correlation_bar,
         plot_correlation_scatter,
     )
+    from src.statistics.backward_lin_regression import (
+        backward_stepwise_regression,
+    )
     from src.survey_dataset_helpers import load_survey_data
 
     return (
@@ -58,7 +68,6 @@ def _():
         get_global_distance_scores,
         librosa,
         load_survey_data,
-        mo,
         np,
         os,
         pd,
@@ -251,7 +260,7 @@ def _(embedding_df, get_global_distance_scores, questions_df):
 @app.cell
 def _(embedding_gda_df, plot_correlation_bar, questions_df):
     plot_correlation_bar(
-        title="CVSM Embeddings Correlations (Randomized)",
+        title="CVSM (ART) Embeddings Correlations (Randomized)",
         feature_df=embedding_gda_df[questions_df.randomized],
         target_feature=questions_df[questions_df.randomized]["A_perc"],
         top_x=10,
@@ -262,7 +271,7 @@ def _(embedding_gda_df, plot_correlation_bar, questions_df):
 @app.cell
 def _(embedding_gda_df, plot_correlation_bar, questions_df):
     plot_correlation_bar(
-        title="CVSM Embeddings Correlations (Max Entropy)",
+        title="CVSM (ART) Embeddings Correlations (Max Entropy)",
         feature_df=embedding_gda_df[~questions_df.randomized],
         target_feature=questions_df[~questions_df.randomized]["A_perc"],
         top_x=10,
@@ -273,12 +282,12 @@ def _(embedding_gda_df, plot_correlation_bar, questions_df):
 @app.cell
 def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
-        title="CVSM Embeddings Correlations (All)",
+        title="CVSM (ART) Embeddings Correlations (All)",
         feature_df=embedding_gda_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
         save_path=os.path.join(
-            PLOT_SAVE_DIR, "CVSM Embeddings Correlations (All).png"
+            PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations (All).png"
         ),
     )
     return
@@ -287,12 +296,48 @@ def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
 @app.cell
 def _(PLOT_SAVE_DIR, embedding_gda_df, plot_correlation_scatter, questions_df):
     plot_correlation_scatter(
-        title="CVSM Embeddings (Canberra Distance)",
-        feature_name="CVSM_Embeddings_Canberra",
+        title="CVSM (ART) Embeddings (Canberra Distance)",
+        feature_name="CVSM_ART_Embeddings_Canberra",
         y=embedding_gda_df["distance_canberra"],
         x=questions_df["A_perc"],
         plot_dir=PLOT_SAVE_DIR,
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Backwards Linear Regression
+    """)
+    return
+
+
+@app.cell
+def _():
+    """
+    N_COMPONENTS = 50
+
+    pca = PCA(n_components=N_COMPONENTS, random_state=RANDOM_SEED)
+
+    embeddings_reduced = pd.DataFrame(
+        pca.fit_transform(embedding_df),
+        columns=[f"PCA_{p}" for p in range(N_COMPONENTS)],
+        index=embedding_df.index,
+    )
+    len(embeddings_reduced.columns)
+
+    final_model, selected_features, removed = backward_stepwise_regression(
+        feature_df=embeddings_reduced,
+        questions_df=questions_df,
+        y=questions_df["A_perc"].values,
+    )
+    """
+    return
+
+
+@app.cell
+def _():
     return
 
 

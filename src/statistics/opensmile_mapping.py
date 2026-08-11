@@ -45,7 +45,12 @@ FEATURE_MAP = {
         "logRelF0-H1-H2_sma3nz_amean",
         "logRelF0-H1-A3_sma3nz_amean",
     ],
-    "Diplophonic": ["F0final_sma_amean"],
+    "Diplophonic": [
+        "F0final_sma_amean",
+        "jitterLocal_sma_amean",
+        "logRelF0-H1-H2_sma3nz_amean",
+        "logRelF0-H1-A3_sma3nz_amean",
+    ],
     "Flutter": ["jitterLocal_sma_amean", "shimmerLocal_sma_amean"],
     "Glottalized": [
         "F1amplitudeLogRelF0_sma3nz_amean",

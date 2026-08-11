@@ -55,6 +55,7 @@ def _():
         DATASET_FOLDER,
         PLOT_FOLDER,
         get_all_distance_differences,
+        get_global_distance_scores,
         load_survey_data,
         mo,
         os,
@@ -210,12 +211,13 @@ def _(
 
 
 @app.cell
-def _(hl_distances, plot_correlation_bar, questions_df):
+def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
         title="High Level Feature Correlations",
         feature_df=hl_distances,
         target_feature=questions_df["A_perc"],
         top_x=len(hl_distances.columns),
+        save_path=os.path.join(PLOT_SAVE_DIR, "high_level_feature_correlations")
     )
     return
 
@@ -233,7 +235,66 @@ def _(hl_distances, plot_correlation_bar, questions_df):
 
 @app.cell
 def _(PLOT_SAVE_DIR, hl_distances, plot_correlation_scatter, questions_df):
-    plot_correlation_scatter(feature_name="Gender", x=questions_df["A_perc"], y=hl_distances["pred_gender"], plot_dir=PLOT_SAVE_DIR)
+    plot_correlation_scatter(
+        feature_name="Gender",
+        x=questions_df["A_perc"],
+        y=hl_distances["pred_gender"],
+        plot_dir=PLOT_SAVE_DIR,
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # High Level Feature Set
+    """)
+    return
+
+
+@app.cell
+def _(get_global_distance_scores, questions_df, track_df):
+    hl_feature_distances_df = get_global_distance_scores(
+        track_df[
+            [
+                "pred_approachability",
+                "pred_danceable",
+                "pred_engagement",
+                "pred_tempo",
+                "pred_p_male",
+                "pred_age",
+            ]
+        ],
+        questions_df,
+    )
+    return (hl_feature_distances_df,)
+
+
+@app.cell
+def _(hl_feature_distances_df, plot_correlation_bar, questions_df):
+    plot_correlation_bar(
+        title="High Level Feature Set Correlations (All)",
+        feature_df=hl_feature_distances_df,
+        target_feature=questions_df["A_perc"],
+        top_x=10,
+    )
+    return
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    hl_feature_distances_df,
+    plot_correlation_scatter,
+    questions_df,
+):
+    plot_correlation_scatter(
+        title="High Level Feature Set (Canberra)",
+        feature_name="High_Level_Feature_Set_Canberra",
+        y=hl_feature_distances_df["distance_canberra"],
+        x=questions_df["A_perc"],
+        plot_dir=PLOT_SAVE_DIR,
+    )
     return
 
 

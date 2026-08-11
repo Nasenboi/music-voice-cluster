@@ -1,8 +1,15 @@
+import os
+from typing import List, Optional
+
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from matplotlib.lines import Line2D
+from matplotlib.path import Path
 from scipy import stats
-import os
+
 
 def plot_model_train_results(
     test_loss,
@@ -111,14 +118,9 @@ def plot_scores(
     plt.show()
 
 
-def plot_correlation_bar(
-    feature_df,
-    target_feature,
-    top_x: int = 15,
-    title: str = "Feature Correlations with Subjective Similarity Ratings",
-    xlabel: str = "Pearson r",
-    save_path: str = None,
-):
+def get_feature_correlation_df(feature_df: pd.DataFrame, target_feature, top_x: int = 10) -> pd.DataFrame:
+    """Pearson's r/p for every column in feature_df vs target_feature.
+    Returns the top_x rows sorted ascending by r (weakest -> strongest)."""
     baseline = np.asarray(target_feature, dtype=float)
     records = []
     for col in feature_df.columns:
@@ -127,9 +129,23 @@ def plot_correlation_bar(
         if mask.sum() < 3:
             continue
         r, p = stats.pearsonr(vals[mask], baseline[mask])
-        records.append({"feature": col, "r": r, "p_value": p, "n": mask.sum()})
+        records.append({"feature": col, "r": r, "p_value": p, "n": int(mask.sum())})
+    if not records:
+        return pd.DataFrame(columns=["feature", "r", "p_value", "n"])
+    return pd.DataFrame(records).nlargest(top_x, "r").sort_values("r")
 
-    corr_df = pd.DataFrame(records).nlargest(top_x, "r").sort_values("r")
+
+def plot_correlation_bar(
+    feature_df,
+    target_feature,
+    top_x: int = 15,
+    title: str = "Feature Correlations with Subjective Similarity Ratings",
+    xlabel: str = "Pearson's r",
+    x_margin: float = 0.01,
+    save_path: str = None,
+    output: bool = False,
+):
+    corr_df = get_feature_correlation_df(feature_df, target_feature, top_x)
 
     colors = ["#C44E52" if r < 0 else "#4C72B0" for r in corr_df["r"]]
 
@@ -147,14 +163,23 @@ def plot_correlation_bar(
 
     for bar, (_, row) in zip(bars, corr_df.iterrows()):
         stars = (
-            "***"
+            " ***"
             if row["p_value"] < 0.001
-            else "**" if row["p_value"] < 0.01 else "*" if row["p_value"] < 0.05 else ""
+            else " **" if row["p_value"] < 0.01 else " *" if row["p_value"] < 0.05 else ""
         )
-        if stars:
-            x_pos = row["r"] + (0.01 if row["r"] >= 0 else -0.01)
-            ha = "left" if row["r"] >= 0 else "right"
-            ax.text(x_pos, bar.get_y() + bar.get_height() / 2, stars, va="center", ha=ha, fontsize=8, color="#333333")
+
+        ha = "left" if row["r"] >= 0 else "right"
+        xm = x_margin if row["r"] > 0.1 else row["r"] + x_margin
+        ax.text(
+            xm,
+            bar.get_y() + bar.get_height() / 2 - 0.05,
+            f"{row['r']:.3f}" + stars,
+            va="center",
+            ha=ha,
+            fontsize=7.5,
+            color="#333333",
+            fontweight="bold",
+        )
 
     ax.axvline(0, color="black", linewidth=0.8, zorder=4)
 
@@ -179,18 +204,72 @@ def plot_correlation_bar(
         plt.savefig(save_path, bbox_inches="tight", dpi=300)
     plt.show()
 
+    if output:
+        return corr_df["feature"].to_list()[::-1], corr_df["r"].to_list()[::-1]
 
-"""
-    plot_correlation_scatter(
-        title=f"{feature_name} Feature Correlation with Subjective Ratings",
-        x=target_feature,
-        y=feature,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, f"questions_{feature_name}_correlation.png"
-        ),
-        legend_loc="lower right",
-    )
-"""
+
+def plot_feature_connection(
+    set_1: List[str],
+    set_2: List[str],
+    title: str = "Feature Set Comparison",
+    set_1_label: str = "Set 1",
+    set_2_label: str = "Set 2",
+    save_path: str = None,
+    top_x: int = 15,
+):
+    set_1, set_2 = set_1[:top_x], set_2[:top_x]
+
+    rank_1 = {feat: i + 1 for i, feat in enumerate(set_1)}
+    rank_2 = {feat: i + 1 for i, feat in enumerate(set_2)}
+
+    common_features = [f for f in set_1 if f in rank_2]
+    max_rank = max(len(set_1), len(set_2))
+
+    fig, ax = plt.subplots(figsize=(8, max(6, max_rank * 0.4)))
+
+    for feat in common_features:
+        ax.plot(
+            [0, 1],
+            [rank_1[feat], rank_2[feat]],
+            color="gray",
+            alpha=0.6,
+            linewidth=1.5,
+            marker="o",
+            markersize=4,
+            zorder=1,
+        )
+
+    for feat, r in rank_1.items():
+        dot_color = "gray" if feat in rank_2 else "lightgray"
+        ax.plot(0, r, marker="o", color=dot_color, markersize=4, zorder=2)
+        ax.text(-0.08, r, feat, ha="right", va="center", fontsize=9)
+
+    for feat, r in rank_2.items():
+        dot_color = "gray" if feat in rank_1 else "lightgray"
+        ax.plot(1, r, marker="o", color=dot_color, markersize=4, zorder=2)
+        ax.text(1.08, r, feat, ha="left", va="center", fontsize=9)
+
+    ax.set_xlim(-0.6, 1.6)
+    ax.set_ylim(max_rank + 0.5, 0.5)
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels([set_1_label, set_2_label], fontsize=11, fontweight="bold")
+    ax.xaxis.tick_top()
+    ax.yaxis.set_visible(False)
+    tick_labels = ax.get_xticklabels()
+    tick_labels[0].set_ha("right")
+    tick_labels[1].set_ha("left")
+
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    ax.set_title(title, fontsize=13, fontweight="bold", pad=15)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+
+    plt.show()
+
 
 def plot_correlation_scatter(
     x,
@@ -206,9 +285,7 @@ def plot_correlation_scatter(
     if title is None:
         title = f"{feature_name} Feature Correlation"
     if save_path is None and plot_dir is not None and feature_name is not None:
-        save_path = os.path.join(
-            plot_dir, f"questions_{feature_name}_correlation.png"
-        )
+        save_path = os.path.join(plot_dir, f"{feature_name}_correlation.png")
 
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
@@ -229,7 +306,7 @@ def plot_correlation_scatter(
         linewidths=0.5,
         s=60,
         zorder=3,
-        label="Data points",
+        label="Data Points",
     )
 
     ax.plot(
@@ -237,45 +314,22 @@ def plot_correlation_scatter(
         y_line,
         color="#C44E52",
         linewidth=1.8,
-        label=f"r = {r:.3f}  (p = {p_value:.2e})",
+        label=f"Linear Regression Fit",
         zorder=4,
     )
 
     n = len(x)
-    # x_mean = x.mean()
-    # se = np.sqrt(
-    #     np.sum((y - (slope * x + intercept)) ** 2)
-    #     / (n - 2)
-    #     * (1 / n + (x_line - x_mean) ** 2 / np.sum((x - x_mean) ** 2))
-    # )
-    # t_crit = stats.t.ppf(0.975, df=n - 2)
-    # ax.fill_between(
-    #     x_line,
-    #     y_line - t_crit * se,
-    #     y_line + t_crit * se,
-    #     color="#C44E52",
-    #     alpha=0.12,
-    #     label="95 % CI",
-    #     zorder=2,
-    # )
 
-    stats_text = f"Pearson r = {r:.3f}\nR2 = {(r*r):.3f}\np-value  = {p_value:.2e}\nn        = {n}"
-    ax.text(
-        0.05,
-        0.95,
-        stats_text,
-        transform=ax.transAxes,
-        fontsize=9,
-        verticalalignment="top",
-        bbox=dict(
-            boxstyle="round,pad=0.4",
-            facecolor="white",
-            edgecolor="#cccccc",
-            alpha=0.9,
-        ),
+    stats_text = f"n = {n}\nPearson's r = {r:.3f}\nR2 = {(r*r):.3f}\np = {p_value:.2e}"
+    stats_handle = Line2D([], [], color="none", label=stats_text)
+
+    ax.legend(
+        handles=[*ax.get_legend_handles_labels()[0], stats_handle],
+        loc=legend_loc,
+        # handlelength=0,  # hide the (invisible) marker for this entry
+        # handletextpad=0,
+        framealpha=0.9,
     )
-
-    ax.legend(loc=legend_loc)
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.5)
     ax.set_axisbelow(True)
 
@@ -283,6 +337,38 @@ def plot_correlation_scatter(
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches="tight", dpi=300)
+
+    plt.show()
+
+
+def plot_correlation_heatmap(feature_set: pd.DataFrame, title: str = "Feature Correlation", save_path: str = None):
+    corr = feature_set.corr()
+    corr = corr[1:].T[:-1].T
+    mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
+
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(
+        corr,
+        mask=mask,
+        annot=True,
+        fmt=".2f",
+        cmap="coolwarm",
+        vmin=-1,
+        vmax=1,
+        linewidths=0.5,
+        linecolor="white",
+    )
+
+    plt.title(title)
+    # plt.xlabel("Features")
+    # plt.ylabel("Features")
+    plt.xticks(rotation=45, ha="right")
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    plt.show()
 
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight", dpi=300)

@@ -48,6 +48,8 @@ def _():
     from src.statistics.plotting import (
         plot_correlation_bar,
         plot_correlation_scatter,
+        plot_feature_connection,
+        plot_correlation_heatmap,
     )
     from src.survey_dataset_helpers import load_survey_data
     from src.utils import get_trimmed_audio
@@ -67,10 +69,11 @@ def _():
         os,
         pd,
         plot_correlation_bar,
+        plot_correlation_heatmap,
         plot_correlation_scatter,
+        plot_feature_connection,
         plt,
         scale_df,
-        sns,
     )
 
 
@@ -261,12 +264,45 @@ def _(gemaps_distances, plot_correlation_bar, questions_df):
 
 
 @app.cell
-def _(gemaps_distances, plot_correlation_bar, questions_df):
-    plot_correlation_bar(
-        title="GeMAPS Feature Correlations (All)",
+def _(PLOT_SAVE_DIR, gemaps_distances, os, plot_correlation_bar, questions_df):
+    gemaps_single_f_corr, _ = plot_correlation_bar(
+        title="Individual GeMAPS Features Correlations",
         feature_df=gemaps_distances,
         target_feature=questions_df["A_perc"],
-        top_x=10,
+        top_x=15,
+        output=True,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "gemaps_features_correlations.png"
+        ),
+    )
+    return (gemaps_single_f_corr,)
+
+
+@app.cell
+def _(gemaps_distances, plot_correlation_scatter, questions_df):
+    plot_correlation_scatter(
+        feature_name="F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope",
+        y=gemaps_distances["F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope"],
+        x=questions_df["A_perc"],
+    )
+    return
+
+
+@app.cell
+def _(gemaps_distances, plot_correlation_scatter, questions_df):
+    plot_correlation_scatter(
+        feature_name="StddevVoicedSegmentLengthSec",
+        y=gemaps_distances["StddevVoicedSegmentLengthSec"],
+        x=questions_df["A_perc"],
+    )
+    return
+
+
+@app.cell
+def _(gemaps_features_df, gemaps_single_f_corr, plot_correlation_heatmap):
+    plot_correlation_heatmap(
+        gemaps_features_df[gemaps_single_f_corr],
+        "Autocorrelation of the Top 15 GeMAPS Features",
     )
     return
 
@@ -333,13 +369,14 @@ def _(questions_df):
 
 @app.cell
 def _(gemaps_distances, gender_m_mask, plot_correlation_bar, questions_df):
-    plot_correlation_bar(
+    gemaps_f_m, _ = plot_correlation_bar(
         title="GeMAPS Feature Correlations (Male only)",
         feature_df=gemaps_distances[gender_m_mask],
         target_feature=questions_df[gender_m_mask]["A_perc"],
         top_x=10,
+        output=True,
     )
-    return
+    return (gemaps_f_m,)
 
 
 @app.cell
@@ -364,13 +401,14 @@ def _(
 
 @app.cell
 def _(gemaps_distances, gender_f_mask, plot_correlation_bar, questions_df):
-    plot_correlation_bar(
+    gemaps_f_f, _ = plot_correlation_bar(
         title="GeMAPS Feature Correlations (Female only)",
         feature_df=gemaps_distances[gender_f_mask],
         target_feature=questions_df[gender_f_mask]["A_perc"],
         top_x=10,
+        output=True,
     )
-    return
+    return (gemaps_f_f,)
 
 
 @app.cell
@@ -392,13 +430,13 @@ def _(
 
 
 @app.cell
-def _(PLOT_SAVE_DIR, gemaps_distances, plot_correlation_scatter, questions_df):
-    plot_correlation_scatter(
-        title="GeMAPS F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope",
-        feature_name="F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope",
-        y=gemaps_distances["F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope"],
-        x=questions_df["A_perc"],
-        plot_dir=PLOT_SAVE_DIR,
+def _(gemaps_f_f, gemaps_f_m, plot_feature_connection):
+    plot_feature_connection(
+        set_1=gemaps_f_m,
+        set_2=gemaps_f_f,
+        set_1_label="Male",
+        set_2_label="Female",
+        title="Different Top Correlation Features Depending on Gender",
     )
     return
 
@@ -437,202 +475,6 @@ def _(PLOT_SAVE_DIR, gemaps_gda_df, plot_correlation_scatter, questions_df):
         title="GeMAPS Feature Set (Canberra)",
         feature_name="Feature_Set_Canberra",
         y=gemaps_gda_df["distance_canberra"],
-        x=questions_df["A_perc"],
-        plot_dir=PLOT_SAVE_DIR,
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    # Backwards Stepwise Regression
-    """)
-    return
-
-
-@app.cell
-def _(questions_df):
-    questions_df
-    return
-
-
-@app.cell
-def _():
-    from sklearn.linear_model import LinearRegression
-    from sklearn.model_selection import cross_val_score, KFold
-    import statsmodels.api as sm
-    from statsmodels.stats.outliers_influence import variance_inflation_factor
-
-    return (sm,)
-
-
-@app.cell
-def _(gemaps_features_df, np, questions_df):
-    def get_feature_differences(question):
-        X_features = gemaps_features_df.loc[question["X"]].values
-        A_features = gemaps_features_df.loc[question["A"]].values
-        B_features = gemaps_features_df.loc[question["B"]].values
-        XA_diff = X_features - A_features
-        XB_diff = X_features - B_features
-
-        XAB_diff = abs(XB_diff) - abs(XA_diff)
-        return XAB_diff
-
-    gemaps_feature_differences = np.stack(
-        questions_df.apply(get_feature_differences, axis=1)
-    )
-    gemaps_feature_differences.shape
-    return (gemaps_feature_differences,)
-
-
-@app.cell
-def _(gemaps_feature_differences, np, pd, plt, smile_gemaps, sns):
-    gemaps_feature_corr = pd.DataFrame(
-        gemaps_feature_differences, columns=smile_gemaps.feature_names
-    ).corr()
-    mask = np.triu(np.ones_like(gemaps_feature_corr, dtype=bool))
-
-    f, ax = plt.subplots(figsize=(11, 9))
-    cmap = sns.diverging_palette(230, 20, as_cmap=True)
-    sns.heatmap(
-        gemaps_feature_corr,
-        mask=mask,
-        cmap=cmap,
-        vmax=0.3,
-        center=0,
-        square=True,
-        linewidths=0.5,
-        cbar_kws={"shrink": 0.5},
-    )
-    return (gemaps_feature_corr,)
-
-
-@app.cell
-def _(gemaps_feature_corr, np, smile_gemaps):
-    reduced_selection = [0, 1, 10, 30, 31, 32, 33, 34, 35, 78, 79, 80]
-
-    corr_threshold = 0.7
-    for i in range(len(smile_gemaps.feature_names)):
-        if i in reduced_selection:
-            continue
-
-        for j in reduced_selection:
-            if gemaps_feature_corr.values[i, j] >= corr_threshold:
-                break
-        else:
-            reduced_selection.append(i)
-
-    reduced_feature_names = np.array(smile_gemaps.feature_names)[
-        reduced_selection
-    ]
-    len(reduced_feature_names)
-    return reduced_feature_names, reduced_selection
-
-
-@app.cell
-def _(
-    gemaps_feature_differences,
-    questions_df,
-    reduced_feature_names,
-    reduced_selection,
-    sm,
-):
-    def backward_stepwise_regression(X, y, feature_names, alpha=0.05):
-        """
-        Perform backward stepwise regression
-        """
-        # Start with all features
-        current_features = list(range(X.shape[1]))
-        current_pvalues = None
-        removed_features = []
-
-        while True:
-            # Fit model with current features
-            X_current = X[:, current_features]
-            X_sm = sm.add_constant(X_current)
-            model = sm.OLS(y, X_sm).fit()
-
-            # Get p-values (excluding intercept)
-            pvalues = model.pvalues[1:]
-
-            # Find feature with highest p-value
-            max_p = pvalues.max()
-            max_p_idx = pvalues.argmax()
-
-            if max_p > alpha and len(current_features) > 1:
-                # Remove feature
-                removed_features.append((current_features[max_p_idx], max_p))
-                del current_features[max_p_idx]
-            else:
-                break
-
-        # Final model
-        X_final = X[:, current_features]
-        X_sm = sm.add_constant(X_final)
-        final_model = sm.OLS(y, X_sm).fit()
-
-        return final_model, current_features, removed_features
-
-    final_model, selected_features, removed = backward_stepwise_regression(
-        gemaps_feature_differences[:, reduced_selection],
-        questions_df["A_perc"].values,
-        reduced_feature_names,
-    )
-    print(final_model.summary())
-    print(
-        f"Selected features: {[str(reduced_feature_names[i]) for i in selected_features]}"
-    )
-    return
-
-
-@app.cell
-def _():
-    """
-                                OLS Regression Results
-    ==============================================================================
-    Dep. Variable:                      y   R-squared:                       0.299
-    Model:                            OLS   Adj. R-squared:                  0.266
-    Method:                 Least Squares   F-statistic:                     8.863
-    Date:                Thu, 16 Jul 2026   Prob (F-statistic):           4.51e-10
-    Time:                        16:45:44   Log-Likelihood:                 21.640
-    No. Observations:                 175   AIC:                            -25.28
-    Df Residuals:                     166   BIC:                             3.203
-    Df Model:                           8
-    Covariance Type:            nonrobust
-    ==============================================================================
-                     coef    std err          t      P>|t|      [0.025      0.975]
-    ------------------------------------------------------------------------------
-    const          0.4664      0.017     27.280      0.000       0.433       0.500
-    x1             0.0706      0.016      4.513      0.000       0.040       0.101
-    x2             0.0459      0.016      2.952      0.004       0.015       0.077
-    x3            -0.0397      0.016     -2.442      0.016      -0.072      -0.008
-    x4             0.0516      0.014      3.654      0.000       0.024       0.080
-    x5             0.0511      0.017      3.057      0.003       0.018       0.084
-    x6             0.0324      0.015      2.193      0.030       0.003       0.062
-    x7            -0.0501      0.018     -2.831      0.005      -0.085      -0.015
-    x8             0.0424      0.017      2.516      0.013       0.009       0.076
-    ==============================================================================
-    Omnibus:                        5.796   Durbin-Watson:                   1.977
-    Prob(Omnibus):                  0.055   Jarque-Bera (JB):                3.273
-    Skew:                          -0.099   Prob(JB):                        0.195
-    Kurtosis:                       2.360   Cond. No.                         1.84
-    ==============================================================================
-
-    Notes:
-    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
-    Selected features: ['F0semitoneFrom27.5Hz_sma3nz_meanRisingSlope', 'mfcc1_sma3_stddevNorm', 'mfcc3_sma3_amean', 'mfcc4_sma3_amean', 'F1frequency_sma3nz_stddevNorm', 'F1amplitudeLogRelF0_sma3nz_amean', 'F2bandwidth_sma3nz_amean', 'loudnessPeaksPerSec']
-
-    """
-    return
-
-
-@app.cell
-def _(PLOT_SAVE_DIR, gemaps_distances, plot_correlation_scatter, questions_df):
-    plot_correlation_scatter(
-        title="GeMAPS F0semitoneFrom27.5Hz_sma3nz_meanRisingSlope",
-        feature_name="F0semitoneFrom27.5Hz_sma3nz_meanRisingSlope",
-        y=gemaps_distances["F0semitoneFrom27.5Hz_sma3nz_meanRisingSlope"],
         x=questions_df["A_perc"],
         plot_dir=PLOT_SAVE_DIR,
     )
@@ -789,6 +631,12 @@ def _(compare_features_df, gemaps_features_df):
 
 
 @app.cell
+def _(voice_quality_df):
+    voice_quality_df["Shimmer"]
+    return
+
+
+@app.cell
 def _(
     VOICE_QUALITY_FEATURES,
     get_distance_row,
@@ -805,7 +653,7 @@ def _(
     ):
         vq_distance_diff_df[vq_feature] = questions_df.apply(
             lambda x: get_distance_row(
-                x, voice_quality_df[vq_feature], "cosine"
+                x, voice_quality_df[vq_feature], "canberra"
             ),
             axis=1,
         )
@@ -820,6 +668,7 @@ def _(plot_correlation_bar, questions_df, vq_distance_diff_df):
         feature_df=vq_distance_diff_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
+        # output=True
     )
     return
 
