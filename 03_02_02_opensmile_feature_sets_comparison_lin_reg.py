@@ -41,19 +41,16 @@ def _():
     )
     from src.statistics.feature_correlation import (
         get_all_distance_differences,
+        get_distance_row,
         get_global_distance_scores,
         scale_df,
-        get_distance_row,
     )
+    from src.statistics.lin_regression import get_feature_differences
     from src.statistics.plotting import (
         plot_correlation_bar,
+        plot_correlation_heatmap,
         plot_correlation_scatter,
         plot_feature_connection,
-        plot_correlation_heatmap,
-    )
-    from src.statistics.backward_lin_regression import (
-        get_feature_differences,
-        backward_stepwise_regression,
     )
     from src.survey_dataset_helpers import load_survey_data
     from src.utils import get_trimmed_audio
@@ -62,7 +59,6 @@ def _():
         CSV_FOLDER,
         DATASET_FOLDER,
         PLOT_FOLDER,
-        StandardScaler,
         get_all_distance_differences,
         get_feature_differences,
         get_trimmed_audio,
@@ -152,9 +148,7 @@ def _(get_all_distance_differences, questions_df, scale_df, track_df):
             "pred_age_no_trim",
         ],
     )
-    hl_distances = get_all_distance_differences(
-        scaled_track_df, hl_features, questions_df
-    )
+    hl_distances = get_all_distance_differences(scaled_track_df, hl_features, questions_df)
     hl_distances
     return
 
@@ -187,9 +181,7 @@ def _(SAMPLE_RATE, get_trimmed_audio):
 
 @app.cell
 def _(DATASET_FOLDER, os):
-    gemaps_feature_path = os.path.join(
-        DATASET_FOLDER, "fma_large_feature_sets", "survey_2_gemaps.npy"
-    )
+    gemaps_feature_path = os.path.join(DATASET_FOLDER, "fma_large_feature_sets", "survey_2_gemaps.npy")
     return (gemaps_feature_path,)
 
 
@@ -234,25 +226,16 @@ def _(mo):
 
 @app.cell
 def _():
-    from scipy.optimize import nnls
     from sklearn.linear_model import Lasso
+    from sklearn.metrics import r2_score, mean_squared_error
 
-    return (Lasso,)
+    return Lasso, mean_squared_error, r2_score
 
 
 @app.cell
-def _(
-    StandardScaler,
-    gemaps_features_df,
-    get_feature_differences,
-    np,
-    questions_df,
-):
+def _(gemaps_features_df, get_feature_differences, np, questions_df):
     # prepare H and L voices
-    lr_sim_y = (
-        questions_df["A_perc"].apply(lambda x: x if x >= 0.5 else 1 - x).values
-        - 0.5
-    ) * 2
+    lr_sim_y = (questions_df["A_perc"].apply(lambda x: x if x >= 0.5 else 1 - x).values - 0.5) * 2
 
     lr_X = np.stack(
         [
@@ -264,9 +247,6 @@ def _(
             for i, (_, q) in enumerate(questions_df.iterrows())
         ]
     )
-
-    scaler = StandardScaler()
-    lr_X_s = scaler.fit_transform(lr_X)
     return lr_X, lr_sim_y
 
 
@@ -278,13 +258,18 @@ def _(Lasso, gemaps_features_df, lr_X, lr_sim_y, pd):
 
     y_pred_sim = sim_model.predict(lr_X)
 
-    sim_coef = pd.Series(
-        sim_model.coef_, index=gemaps_features_df.columns
-    ).sort_values(ascending=False)
+    sim_coef = pd.Series(sim_model.coef_, index=gemaps_features_df.columns).sort_values(ascending=False)
 
     sim_coef = sim_coef[sim_coef > 0]
     sim_coef
-    return (sim_coef,)
+    return sim_coef, y_pred_sim
+
+
+@app.cell
+def _(lr_sim_y, mean_squared_error, np, r2_score, y_pred_sim):
+    print(f"R2 score: {r2_score(lr_sim_y, y_pred_sim):.3f}")
+    print(f"RMSE    : {np.sqrt(mean_squared_error(lr_sim_y, y_pred_sim)):.3f}")
+    return
 
 
 @app.cell(hide_code=True)
@@ -310,20 +295,19 @@ def _(Lasso, gemaps_features_df, pd, track_df):
 
     gender_model.fit(lr_X_gender, lr_gender_y)
 
-    y_pred = gender_model.predict(lr_X_gender)
+    y_gender_pred = gender_model.predict(lr_X_gender)
 
-    gender_coef = pd.Series(
-        gender_model.coef_, index=gemaps_features_df.columns
-    ).sort_values(ascending=False)
+    gender_coef = pd.Series(gender_model.coef_, index=gemaps_features_df.columns).sort_values(ascending=False)
 
     gender_coef = gender_coef[gender_coef > 0]
     gender_coef
-    return (gender_coef,)
+    return gender_coef, lr_gender_y, y_gender_pred
 
 
 @app.cell
-def _(sim_coef):
-    len(sim_coef)
+def _(lr_gender_y, mean_squared_error, np, r2_score, y_gender_pred):
+    print(f"R2 score: {r2_score(lr_gender_y, y_gender_pred):.3f}")
+    print(f"RMSE    : {np.sqrt(mean_squared_error(lr_gender_y, y_gender_pred)):.3f}")
     return
 
 
@@ -334,7 +318,8 @@ def _(gender_coef, plot_feature_connection, sim_coef):
         set_2=gender_coef.index.values,
         set_1_label="Similarity Ratings",
         set_2_label="Gender Regression",
-        top_x=len(sim_coef),
+        top_x=len(gender_coef),
+        title="Lasso Predictors Comparison"
     )
     return
 

@@ -22,20 +22,19 @@ def _():
 @app.cell
 def _():
     import os
+    import random
     from typing import List, Literal
+
     import librosa
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
     import seaborn as sns
-    from sklearn.preprocessing import StandardScaler
-    import random
     from sklearn.decomposition import PCA
+    from sklearn.preprocessing import StandardScaler
 
     os.environ["TF_USE_LEGACY_KERAS"] = "1"
     import tensorflow as tf
-
-    # from src import load_singer_identity_model
 
     from src.globals import (
         AUDIO_FOLDER,
@@ -47,19 +46,12 @@ def _():
         TRACKS_PATH,
         UVR_MODEL_PATH,
     )
-    from src.statistics.feature_correlation import (
-        get_all_distance_differences,
-        get_global_distance_scores,
-        scale_df,
-    )
-    from src.statistics.plotting import (
-        plot_correlation_bar,
-        plot_correlation_scatter,
-    )
-    from src.statistics.backward_lin_regression import (
-        backward_stepwise_regression,
-    )
+    from src.statistics.feature_correlation import get_all_distance_differences, get_global_distance_scores, scale_df
+    from src.statistics.lin_regression import backward_stepwise_regression
+    from src.statistics.plotting import plot_correlation_bar, plot_correlation_scatter
     from src.survey_dataset_helpers import load_survey_data
+
+    # from src import load_singer_identity_model
 
     return (
         CSV_FOLDER,
@@ -180,9 +172,7 @@ def _(constants, cvsm_model_path, network, tf):
         metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
     )
 
-    contrastive_network.load_weights(
-        tf.train.latest_checkpoint(cvsm_model_path)
-    ).expect_partial()
+    contrastive_network.load_weights(tf.train.latest_checkpoint(cvsm_model_path)).expect_partial()
     encoder = contrastive_network.embedding_model.get_layer("encoder")
     return (encoder,)
 
@@ -190,13 +180,9 @@ def _(constants, cvsm_model_path, network, tf):
 @app.cell
 def _(encoder, tf):
     inputs = tf.keras.layers.Input(shape=(16000,))
-    x = tf.signal.stft(
-        inputs, frame_length=400, frame_step=160, fft_length=1024
-    )
+    x = tf.signal.stft(inputs, frame_length=400, frame_step=160, fft_length=1024)
     x = tf.abs(x)
-    mel_matrix = tf.signal.linear_to_mel_weight_matrix(
-        64, x.shape[-1], 16000, 60, 7800
-    )
+    mel_matrix = tf.signal.linear_to_mel_weight_matrix(64, x.shape[-1], 16000, 60, 7800)
     x = tf.tensordot(x, mel_matrix, 1)
     x = tf.clip_by_value(x, clip_value_min=1e-5, clip_value_max=1e8)
     x = tf.expand_dims(tf.math.log(x), axis=-1)
@@ -237,11 +223,7 @@ def _(librosa, model, np, tf):
 @app.cell
 def _(encoder, get_embedding, np, pd, scale_df, track_df):
     embedding_df = pd.DataFrame(
-        np.stack(
-            track_df.vocal_path.apply(
-                lambda x: get_embedding(x, encoder)
-            ).values
-        ),
+        np.stack(track_df.vocal_path.apply(lambda x: get_embedding(x, encoder)).values),
         columns=[f"emb_{e}" for e in range(1280)],
         index=track_df.index,
     )
@@ -286,9 +268,7 @@ def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
         feature_df=embedding_gda_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations (All).png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations (All).png"),
     )
     return
 
