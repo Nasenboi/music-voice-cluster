@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.10"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
@@ -22,12 +22,13 @@ def _():
     import numpy as np
     import pandas as pd
 
+    from src.globals import AUDIO_FOLDER, CSV_FOLDER, STEMS_FOLDER, TRACKS_PATH, UVR_MODEL_PATH
+
     # utils.py file
     # in: FMA: A Dataset For Music Analysis
     # Defferrard, M., Benzi, K., Vandergheynst, P., & Bresson, X. (2017). FMA: A Dataset for Music Analysis. In 18th International Society for Music Information Retrieval Conference (ISMIR).
     # available under "https://github.com/mdeff/fma"
-    from src.FMA.utils import get_audio_path, load
-    from src.globals import AUDIO_FOLDER, CSV_FOLDER, STEMS_FOLDER, TRACKS_PATH, UVR_MODEL_PATH
+    from src.submodules.FMA.utils import get_audio_path, load
 
     return (
         AUDIO_FOLDER,
@@ -41,14 +42,6 @@ def _():
         os,
         pd,
     )
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
- 
-    """)
-    return
 
 
 @app.cell(hide_code=True)

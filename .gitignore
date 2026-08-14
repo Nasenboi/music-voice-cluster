@@ -163,6 +163,5 @@ cython_debug/
 *.png
 *.csv
 archive
-/src/FMA
 .vscode
 /src/submodules/cvsm
