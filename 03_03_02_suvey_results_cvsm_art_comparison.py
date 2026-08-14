@@ -4,6 +4,15 @@ __generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # !!NOTE!! Run this notebook with the separate sosv-np1 environment!
+    The CVSM model was built with tensorflow instead of torch, at least on my system inference only worked in combination with numpy version 1 - this is the reason for the second environment.
+    """)
+    return
+
+
 @app.cell
 def _(mo):
     mo.md(r"""
@@ -22,6 +31,7 @@ def _():
 @app.cell
 def _():
     import os
+    import sys
     import random
     from typing import List, Literal
 
@@ -46,12 +56,16 @@ def _():
         TRACKS_PATH,
         UVR_MODEL_PATH,
     )
-    from src.statistics.feature_correlation import get_all_distance_differences, get_global_distance_scores, scale_df
-    from src.statistics.lin_regression import backward_stepwise_regression
-    from src.statistics.plotting import plot_correlation_bar, plot_correlation_scatter
+    from src.statistics.feature_correlation import (
+        get_all_distance_differences,
+        get_global_distance_scores,
+        scale_df,
+    )
+    from src.statistics.plotting import (
+        plot_correlation_bar,
+        plot_correlation_scatter,
+    )
     from src.survey_dataset_helpers import load_survey_data
-
-    # from src import load_singer_identity_model
 
     return (
         CSV_FOLDER,
@@ -67,6 +81,7 @@ def _():
         plot_correlation_scatter,
         random,
         scale_df,
+        sys,
         tf,
     )
 
@@ -120,7 +135,7 @@ def _(CSV_PATHS, load_survey_data):
 
 @app.cell
 def _(PLOT_FOLDER, os):
-    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2")
+    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2", "03_03_02")
     return (PLOT_SAVE_DIR,)
 
 
@@ -137,9 +152,13 @@ def _(mo):
 
 
 @app.cell
-def _():
-    from src.submodules.cvsm.cola import constants
-    from src.submodules.cvsm.mscol import network
+def _(os, sys):
+    cvsm_path = os.path.join(os.getcwd(), "src", "submodules", "cvsm")
+    if cvsm_path not in sys.path:
+        sys.path.insert(0, cvsm_path)
+
+    from cola import constants
+    from mscol import network
 
     return constants, network
 
@@ -172,7 +191,9 @@ def _(constants, cvsm_model_path, network, tf):
         metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
     )
 
-    contrastive_network.load_weights(tf.train.latest_checkpoint(cvsm_model_path)).expect_partial()
+    contrastive_network.load_weights(
+        tf.train.latest_checkpoint(cvsm_model_path)
+    ).expect_partial()
     encoder = contrastive_network.embedding_model.get_layer("encoder")
     return (encoder,)
 
@@ -180,9 +201,13 @@ def _(constants, cvsm_model_path, network, tf):
 @app.cell
 def _(encoder, tf):
     inputs = tf.keras.layers.Input(shape=(16000,))
-    x = tf.signal.stft(inputs, frame_length=400, frame_step=160, fft_length=1024)
+    x = tf.signal.stft(
+        inputs, frame_length=400, frame_step=160, fft_length=1024
+    )
     x = tf.abs(x)
-    mel_matrix = tf.signal.linear_to_mel_weight_matrix(64, x.shape[-1], 16000, 60, 7800)
+    mel_matrix = tf.signal.linear_to_mel_weight_matrix(
+        64, x.shape[-1], 16000, 60, 7800
+    )
     x = tf.tensordot(x, mel_matrix, 1)
     x = tf.clip_by_value(x, clip_value_min=1e-5, clip_value_max=1e8)
     x = tf.expand_dims(tf.math.log(x), axis=-1)
@@ -223,7 +248,11 @@ def _(librosa, model, np, tf):
 @app.cell
 def _(encoder, get_embedding, np, pd, scale_df, track_df):
     embedding_df = pd.DataFrame(
-        np.stack(track_df.vocal_path.apply(lambda x: get_embedding(x, encoder)).values),
+        np.stack(
+            track_df.vocal_path.apply(
+                lambda x: get_embedding(x, encoder)
+            ).values
+        ),
         columns=[f"emb_{e}" for e in range(1280)],
         index=track_df.index,
     )
@@ -240,23 +269,31 @@ def _(embedding_df, get_global_distance_scores, questions_df):
 
 
 @app.cell
-def _(embedding_gda_df, plot_correlation_bar, questions_df):
+def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
         title="CVSM (ART) Embeddings Correlations (Randomized)",
         feature_df=embedding_gda_df[questions_df.randomized],
         target_feature=questions_df[questions_df.randomized]["A_perc"],
         top_x=10,
+        on_left_margin=0.05,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "CVSM (ART) Embeddings Correlations (Randomized).png",
+        ),
     )
     return
 
 
 @app.cell
-def _(embedding_gda_df, plot_correlation_bar, questions_df):
+def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
-        title="CVSM (ART) Embeddings Correlations (Max Entropy)",
+        title="CVSM (ART) Embeddings Correlations (Heuristic)",
         feature_df=embedding_gda_df[~questions_df.randomized],
         target_feature=questions_df[~questions_df.randomized]["A_perc"],
-        top_x=10,
+        top_x=4,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations (Heuristic).png"
+        ),
     )
     return
 
@@ -267,57 +304,31 @@ def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
         title="CVSM (ART) Embeddings Correlations (All)",
         feature_df=embedding_gda_df,
         target_feature=questions_df["A_perc"],
-        top_x=10,
-        save_path=os.path.join(PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations (All).png"),
+        top_x=4,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations (All).png"
+        ),
     )
     return
 
 
 @app.cell
-def _(PLOT_SAVE_DIR, embedding_gda_df, plot_correlation_scatter, questions_df):
+def _(
+    PLOT_SAVE_DIR,
+    embedding_gda_df,
+    os,
+    plot_correlation_scatter,
+    questions_df,
+):
     plot_correlation_scatter(
         title="CVSM (ART) Embeddings (Canberra Distance)",
-        feature_name="CVSM_ART_Embeddings_Canberra",
+        #feature_name="CVSM (ART) Embeddings (Canberra Distance)",
         y=embedding_gda_df["distance_canberra"],
         x=questions_df["A_perc"],
-        plot_dir=PLOT_SAVE_DIR,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations Scatter (Canberra Distance).png"
+        ),
     )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Backwards Linear Regression
-    """)
-    return
-
-
-@app.cell
-def _():
-    """
-    N_COMPONENTS = 50
-
-    pca = PCA(n_components=N_COMPONENTS, random_state=RANDOM_SEED)
-
-    embeddings_reduced = pd.DataFrame(
-        pca.fit_transform(embedding_df),
-        columns=[f"PCA_{p}" for p in range(N_COMPONENTS)],
-        index=embedding_df.index,
-    )
-    len(embeddings_reduced.columns)
-
-    final_model, selected_features, removed = backward_stepwise_regression(
-        feature_df=embeddings_reduced,
-        questions_df=questions_df,
-        y=questions_df["A_perc"].values,
-    )
-    """
-    return
-
-
-@app.cell
-def _():
     return
 
 

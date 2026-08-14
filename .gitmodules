@@ -10,3 +10,6 @@
 [submodule "src/submodules/FMA"]
 	path = src/submodules/FMA
 	url = https://github.com/mdeff/fma.git
+[submodule "src/submodules/cvsm"]
+	path = src/submodules/cvsm
+	url = https://github.com/cgaroufis/CVSM.git
