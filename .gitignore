@@ -164,4 +164,3 @@ cython_debug/
 *.csv
 archive
 .vscode
-/src/submodules/cvsm
