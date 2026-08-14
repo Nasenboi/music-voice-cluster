@@ -40,5 +40,5 @@ ENV XLA_FLAGS="--xla_gpu_cuda_data_dir=/usr/local/cuda"
 #COPY environment-docker.yml .
 #RUN conda env create -f environment-docker.yml
 
-#CMD ["/opt/conda/envs/sov/bin/marimo", "edit", "--no-token", "--headless", "--allow-origins", "*"]
+#CMD ["/opt/conda/envs/sosv/bin/marimo", "edit", "--no-token", "--headless", "--allow-origins", "*"]
 CMD ["/bin/bash"]

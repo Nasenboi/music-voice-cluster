@@ -1,4 +1,4 @@
-name: sov
+name: sosv
 channels:
   - defaults
   - conda-forge
