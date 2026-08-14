@@ -116,7 +116,7 @@ def _(CSV_PATHS, load_survey_data):
     human_agreement = SURVEY_DATA["human_agreement"]
     answer_a_b_ratio = SURVEY_DATA["answer_a_b_ratio"]
     track_df = SURVEY_DATA["track_df"]
-    return questions_df, track_df
+    return questions_df, songs_df, track_df
 
 
 @app.cell
@@ -357,9 +357,27 @@ def _(gemaps_features_df):
 
 
 @app.cell
-def _(Lasso, gemaps_features_df, pd, track_df):
-    lr_X_gender = gemaps_features_df.values
-    lr_gender_y = track_df["pred_p_male"]
+def _(songs_df):
+    songs_df[songs_df.skipInSurvey].trackID.values
+    return
+
+
+@app.cell
+def _(songs_df, track_df):
+    skip_mask = ~track_df.index.isin(songs_df[songs_df.skipInSurvey].trackID.values)
+    return (skip_mask,)
+
+
+@app.cell
+def _(skip_mask, track_df):
+    track_df[skip_mask]
+    return
+
+
+@app.cell
+def _(Lasso, gemaps_features_df, pd, skip_mask, track_df):
+    lr_X_gender = gemaps_features_df[skip_mask].values
+    lr_gender_y = track_df[skip_mask]["pred_p_male"]
 
     gender_model = Lasso(alpha=0.03, max_iter=10000)
 

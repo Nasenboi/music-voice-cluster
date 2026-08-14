@@ -144,6 +144,7 @@ def plot_correlation_bar(
     x_margin: float = 0.01,
     save_path: str = None,
     output: bool = False,
+    on_left_margin: float = 0.01,
 ):
     corr_df = get_feature_correlation_df(feature_df, target_feature, top_x)
 
@@ -169,7 +170,7 @@ def plot_correlation_bar(
         )
 
         ha = "left" if row["r"] >= 0 else "right"
-        xm = x_margin if row["r"] > 0.1 else row["r"] + x_margin
+        xm = x_margin if row["r"] > on_left_margin else row["r"] + x_margin
         ax.text(
             xm,
             bar.get_y() + bar.get_height() / 2 - 0.05,

@@ -43,9 +43,11 @@ def get_distance_diff(x, a_1, a_2) -> float:
         if dist_a_1 + dist_a_2 == 0:
             return 0.5  # small failsave to avoid zero division
         # -1 to 1: -1 => A2 is more similar to X, 1 => A1 is more similar to X
-        norm_dist = (dist_a_2 - dist_a_1) / (dist_a_1 + dist_a_2)
+        # norm_dist = (dist_a_2 - dist_a_1) / (dist_a_1 + dist_a_2)
         # 0 to 1: 0 => A2 is more similar to X, 1 => A1 is more similar to X
-        return (norm_dist + 1) / 2
+        # return (norm_dist + 1) / 2
+        # simplified to:
+        return dist_a_2 / (dist_a_1 + dist_a_2)
     else:
         if a_1 == a_2:
             return 0.5  # Uncertainty

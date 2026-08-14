@@ -118,7 +118,7 @@ def _(CSV_PATHS, load_survey_data):
     human_agreement = SURVEY_DATA["human_agreement"]
     answer_a_b_ratio = SURVEY_DATA["answer_a_b_ratio"]
     track_df = SURVEY_DATA["track_df"]
-    return questions_df, track_df
+    return answers_df, questions_df, track_df
 
 
 @app.cell
@@ -299,18 +299,6 @@ def _(gemaps_distances, plot_correlation_scatter, questions_df):
 
 
 @app.cell
-def _(gemaps_distances, plot_correlation_bar, questions_df):
-    gemaps_single_f_corr_20, _ = plot_correlation_bar(
-        title="Individual GeMAPS Features Correlations",
-        feature_df=gemaps_distances,
-        target_feature=questions_df["A_perc"],
-        top_x=20,
-        output=True,
-    )
-    return
-
-
-@app.cell
 def _(
     PLOT_SAVE_DIR,
     gemaps_features_df,
@@ -399,7 +387,7 @@ def _(
     questions_df,
 ):
     gemaps_f_m, _ = plot_correlation_bar(
-        title="GeMAPS Feature Correlations (Male only)",
+        title="GeMAPS Feature Correlations (Male Only)",
         feature_df=gemaps_distances[gender_m_mask],
         target_feature=questions_df[gender_m_mask]["A_perc"],
         top_x=10,
@@ -439,7 +427,7 @@ def _(
     questions_df,
 ):
     gemaps_f_f, _ = plot_correlation_bar(
-        title="GeMAPS Feature Correlations (Female only)",
+        title="GeMAPS Feature Correlations (Female Only)",
         feature_df=gemaps_distances[gender_f_mask],
         target_feature=questions_df[gender_f_mask]["A_perc"],
         top_x=10,
@@ -476,6 +464,32 @@ def _(gemaps_f_f, gemaps_f_m, plot_feature_connection):
         set_2_label="Female",
         title="Top Feature Correlations Depending on Gender",
         # save_path=os.path.join(PLOT_SAVE_DIR, "gender_feature_connections.png")
+    )
+    return
+
+
+@app.cell
+def _(answers_df, gender_mixed_mask, questions_df):
+    len(answers_df[answers_df.questionID.isin(questions_df[gender_mixed_mask].index)])
+    return
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    gemaps_distances,
+    gender_mixed_mask,
+    os,
+    plot_correlation_bar,
+    questions_df,
+):
+    gemaps_f_mixed, _ = plot_correlation_bar(
+        title="GeMAPS Feature Correlations (Mixed Gender Only)",
+        feature_df=gemaps_distances[gender_mixed_mask],
+        target_feature=questions_df[gender_mixed_mask]["A_perc"],
+        top_x=15,
+        output=True,
+        save_path=os.path.join(PLOT_SAVE_DIR, "gender_mixed_feature_corr_bar.png"),
     )
     return
 

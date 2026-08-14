@@ -72,7 +72,6 @@ def _():
 @app.cell
 def _(PLOT_FOLDER, os):
     PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2")
-
     return (PLOT_SAVE_DIR,)
 
 
@@ -199,7 +198,39 @@ def _(mo, pd, phoneme_df, questions_df, wasserstein_distance_nd):
             columns[feat] = feat_scores.to_list()
         return pd.DataFrame(columns, index=questions_df.index)
 
-    return (run_emd_distance_diff_algorithm,)
+    return (
+        get_emd_distance_diff,
+        get_phoneme_features_per_track,
+        run_emd_distance_diff_algorithm,
+    )
+
+
+@app.cell
+def _(get_emd_distance_diff, get_phoneme_features_per_track, pd, questions_df):
+    def get_joint_feature_emd_distance_diff(
+        question,
+        feature_df: pd.DataFrame,
+    ) -> float:
+        """Like get_local_feature_emd_distance_diff, but treats all columns of
+        feature_df jointly as one multivariate distribution per track, rather
+        than slicing to a single feature column first."""
+        x = get_phoneme_features_per_track(question["X"], feature_df)
+        a_1 = get_phoneme_features_per_track(question["A"], feature_df)
+        a_2 = get_phoneme_features_per_track(question["B"], feature_df)
+        return get_emd_distance_diff(x, a_1, a_2)
+
+
+    def run_joint_emd_distance_diff_algorithm(feature_df: pd.DataFrame) -> pd.Series:
+        """Runs the EMD distance-diff algorithm once per question, using the
+        entire feature_df (all columns/features at once) as the distribution
+        for each track, rather than computing one score per feature column."""
+        scores = questions_df.apply(
+            lambda q: get_joint_feature_emd_distance_diff(q, feature_df),
+            axis=1,
+        )
+        return scores.rename("joint_emd_distance_diff")
+
+    return (run_joint_emd_distance_diff_algorithm,)
 
 
 @app.cell(hide_code=True)
@@ -292,12 +323,20 @@ def _(mfcc_emd_distance_diff_df, plot_correlation_bar, questions_df):
 
 
 @app.cell
-def _(mfcc_emd_distance_diff_df, plot_correlation_bar, questions_df):
+def _(
+    PLOT_SAVE_DIR,
+    mfcc_emd_distance_diff_df,
+    os,
+    plot_correlation_bar,
+    questions_df,
+):
     plot_correlation_bar(
-        title="MFCC EMD Correlations (All)",
+        title="MFCC Correlations",
         feature_df=mfcc_emd_distance_diff_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
+        on_left_margin=0.05,
+        save_path=os.path.join(PLOT_SAVE_DIR, "mfcc_corr_bar.png")
     )
     return
 
@@ -311,11 +350,40 @@ def _(
 ):
     plot_correlation_scatter(
         title="MFCC 4th Coefficient",
-        feature_name="MFCC_4th_Coedd",
+        feature_name="MFCC_4th_Coeff",
         x=questions_df["A_perc"],
         y=mfcc_emd_distance_diff_df["mfcc_4"],
         plot_dir=PLOT_SAVE_DIR,
     )
+    return
+
+
+@app.cell
+def _(mfcc_df, run_joint_emd_distance_diff_algorithm):
+    mfcc_joint_emd_df = run_joint_emd_distance_diff_algorithm(mfcc_df)
+    mfcc_joint_emd_df
+    return (mfcc_joint_emd_df,)
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    mfcc_joint_emd_df,
+    plot_correlation_scatter,
+    questions_df,
+):
+    plot_correlation_scatter(
+        title="MFCC Joint EMD",
+        feature_name="MFCC_Joint_Coeff",
+        x=questions_df["A_perc"],
+        y=mfcc_joint_emd_df,
+        plot_dir=PLOT_SAVE_DIR,
+    )
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -536,13 +604,26 @@ def _(mel_emd_distance_diff_df, plot_correlation_bar, questions_df):
 
 
 @app.cell
-def _(mel_emd_distance_diff_df, plot_correlation_bar, questions_df):
+def _(
+    PLOT_SAVE_DIR,
+    mel_emd_distance_diff_df,
+    os,
+    plot_correlation_bar,
+    questions_df,
+):
     plot_correlation_bar(
-        title="Mel EMD Correlations (All)",
+        title="Mel-Band Correlations",
         feature_df=mel_emd_distance_diff_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
+        save_path=os.path.join(PLOT_SAVE_DIR, "mel_band_corr_bar.png")
     )
+    return
+
+
+@app.cell
+def _(mel_centers):
+    mel_centers[6]
     return
 
 
@@ -559,6 +640,30 @@ def _(
         feature_name="Mel_4th_Band",
         x=questions_df["A_perc"],
         y=mel_emd_distance_diff_df["mel_4"],
+        plot_dir=PLOT_SAVE_DIR,
+    )
+    return
+
+
+@app.cell
+def _(mel_df, run_joint_emd_distance_diff_algorithm):
+    mel_joint_emd_df = run_joint_emd_distance_diff_algorithm(mel_df)
+    mel_joint_emd_df
+    return
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    mfcc_joint_emd_df,
+    plot_correlation_scatter,
+    questions_df,
+):
+    plot_correlation_scatter(
+        title="Mel-Band Joint EMD",
+        feature_name="Mel-Band_Joint_Coeff",
+        x=questions_df["A_perc"],
+        y=mfcc_joint_emd_df,
         plot_dir=PLOT_SAVE_DIR,
     )
     return
