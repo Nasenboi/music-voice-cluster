@@ -296,7 +296,7 @@ def _(
 
 @app.cell
 def _(MODEL_FOLDER, TensorflowPredict2D, embeddings_list, mo, os, track_df):
-    # engageability
+    # engagement
     engageModelName = os.path.join(MODEL_FOLDER, "engagement", "engagement_regression-discogs-effnet-1.pb")
     engageModel = TensorflowPredict2D(graphFilename=engageModelName, output="model/Identity")
 

@@ -95,11 +95,6 @@ def _(pd, tracks_df):
     return (fma,)
 
 
-@app.cell
-def _():
-    return
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
