@@ -63,7 +63,7 @@ def _(AUDIO_FOLDER, TRACKS_PATH, get_audio_path, load):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Format the Dataset
+    # Modify the Dataset
     Create a smaller dataset with relevant track information
     """)
     return

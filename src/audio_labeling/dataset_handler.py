@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import sounddevice as sd
 
-from ..globals import CSV_FOLDER
+from ..globals import AUDIO_FOLDER, CSV_FOLDER
 
 
 class DatasetHandler:
@@ -41,8 +41,7 @@ class DatasetHandler:
 
     # Dataset Methods
     def save(self):
-        """generates a new path and saves the current state of the dataset
-        """
+        """generates a new path and saves the current state of the dataset"""
         self._dataset.to_csv(self._generate_new_dataset_path())
 
     def get_progress(self) -> dict:
@@ -53,11 +52,7 @@ class DatasetHandler:
         total = len(self._dataset)
         checked = len(self._dataset[self._dataset.checked])
         percent = (checked / total * 100) if total > 0 else 0
-        return {
-            "total": total,
-            "checked": checked,
-            "percent": percent
-        }
+        return {"total": total, "checked": checked, "percent": percent}
 
     # Row Methods
     def set_row(self, step_forward: bool = True) -> bool:
@@ -73,15 +68,15 @@ class DatasetHandler:
         if step_forward:
             return self._step_forward()
         return True
-    
+
     def navigate(self, step: int = 1):
         """navigates the dataset using a specified step size
-        
+
         Args:
             step (int): The step size. Defaults to 1.
         """
         self.current_index = self.current_index + step
-        self.current_index = max(0, min(self.current_index, len(self._dataset)-1))
+        self.current_index = max(0, min(self.current_index, len(self._dataset) - 1))
         self._get_row_infos()
 
     def play_audio(self):
@@ -90,7 +85,7 @@ class DatasetHandler:
             sd.play(self.current_row["y"], self.current_row["sr"])
         except Exception as e:
             return
-        
+
     # -- Private Methods (helpers) --
 
     # Dataset Methods
@@ -99,17 +94,18 @@ class DatasetHandler:
         Get the most recently edited dataset from the CSV folder
 
         Returns:
-            str: the path for the current dataset 
+            str: the path for the current dataset
         """
         subpath = os.path.join(CSV_FOLDER, self._subpath)
         datasets = os.listdir(subpath)
-        csv_files = [f for f in datasets if f.endswith('.csv')]
+        csv_files = [f for f in datasets if f.endswith(".csv")]
         if not csv_files:
             raise FileNotFoundError("No Dataset Found!")
-        
+
         latest_file = max(csv_files, key=lambda f: os.path.getctime(os.path.join(subpath, f)))
+        print("load latest file:", latest_file)
         return os.path.join(subpath, latest_file)
-    
+
     def _load_current_dataset(self, dataset_path: str = None):
         """
         Loads the newest dataset
@@ -135,13 +131,13 @@ class DatasetHandler:
 
     def _generate_new_dataset_path(self) -> str:
         """Generates a new name and path for the dataset
-        
+
         Returns:
-            str: the path for the new dataset 
+            str: the path for the new dataset
         """
         self._get_trimmed_audio
         return os.path.join(CSV_FOLDER, self._subpath, f"dataset_{datetime.now().strftime('%y%m%d_%H%M%S')}.csv")
-    
+
     # Row Methods
     def _get_trimmed_audio(self, audiopath: str) -> Tuple[np.ndarray, int]:
         """Load audio from path and remove silent parts.
@@ -158,42 +154,42 @@ class DatasetHandler:
         for start, end in intervals:
             trimmed_parts.append(y[..., start:end])
         return np.concatenate(trimmed_parts, axis=-1), sr
-    
+
     def _get_row_infos(self):
         """get the informations of the current row (by self.current_index)
-        Stores them as a dict class variable 
+        Stores them as a dict class variable
         """
         row = self._dataset.iloc[self.current_index]
-        y, sr = self._get_trimmed_audio(row.vocal_path)
+        y, sr = self._get_trimmed_audio(os.path.join(AUDIO_FOLDER, "fma_large_stems", row.vocal_path))
 
         self.current_row = {
             **row,
             "track_id": row.name,
             "y": y,
             "sr": sr,
-            "vocal_content_length_s": float(y.shape[0]) / float(sr)
+            "vocal_content_length_s": float(y.shape[0]) / float(sr),
         }
-    
+
     def _step_forward(self) -> bool:
         """Steps to the first unchecked dataset row, if there are any
 
         Returns:
             bool: returns false if all rows have been set to checked
         """
-        unchecked_indices = self._dataset.index[~self._dataset['checked']].tolist()
+        unchecked_indices = self._dataset.index[~self._dataset["checked"]].tolist()
         if not unchecked_indices:
+            self._get_row_infos()
             return False
         self.current_index = self._dataset.index.get_loc(unchecked_indices[0])
         self._get_row_infos()
         return True
 
     def _insert_row_infox(self):
-        """sets the infos from the current row into the dataset row at the current index position
-        """
+        """sets the infos from the current row into the dataset row at the current index position"""
         track_id = self._dataset.iloc[self.current_index].name
         self._dataset.loc[track_id, "checked"] = True
         self._dataset.loc[track_id, "voice_quality"] = self.current_row["voice_quality"]
-        self._dataset.loc[track_id, "is_voiced"] = (self.current_row["voice_quality"] == 0)
+        self._dataset.loc[track_id, "is_voiced"] = self.current_row["voice_quality"] == 0
         self._dataset.loc[track_id, "multiple_voices"] = self.current_row["multiple_voices"]
         self._dataset.loc[track_id, "vocal_content_length_s"] = self.current_row["vocal_content_length_s"]
         self._dataset.loc[track_id, "interview"] = self.current_row["interview"]

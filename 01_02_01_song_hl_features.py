@@ -7,7 +7,7 @@ app = marimo.App(width="medium")
 @app.cell
 def _(mo):
     mo.md(r"""
-    # Import Python Packages
+    RoFormer# Import Python Packages
     """)
     return
 
@@ -37,7 +37,9 @@ def _():
 @app.cell
 def _(DATASET_FOLDER, os, pd):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
-    songs = pd.read_csv(os.path.join(SURVEY_FOLDER, "songs.csv"), index_col="trackID")
+    songs = pd.read_csv(
+        os.path.join(SURVEY_FOLDER, "songs.csv"), index_col="trackID"
+    )
     songs
     return (songs,)
 
@@ -185,7 +187,12 @@ def _(os):
     import librosa as lr
     import tensorflow as tf
     from essentia import Pool
-    from essentia.standard import MonoLoader, TempoCNN, TensorflowPredict2D, TensorflowPredictEffnetDiscogs
+    from essentia.standard import (
+        MonoLoader,
+        TempoCNN,
+        TensorflowPredict2D,
+        TensorflowPredictEffnetDiscogs,
+    )
 
     tf.debugging.set_log_device_placement(True)
     print(tf.config.list_physical_devices("GPU"))
@@ -202,9 +209,13 @@ def _(os):
 @app.cell
 def _(MODEL_FOLDER, TensorflowPredictEffnetDiscogs, os, tf):
     # generate embeddings
-    embeddingFilename = os.path.join(MODEL_FOLDER, "effnet", "discogs-effnet-bs64-1.pb")
+    embeddingFilename = os.path.join(
+        MODEL_FOLDER, "effnet", "discogs-effnet-bs64-1.pb"
+    )
     with tf.device("/GPU:0"):
-        embedding_model = TensorflowPredictEffnetDiscogs(graphFilename=embeddingFilename, output="PartitionedCall:1")
+        embedding_model = TensorflowPredictEffnetDiscogs(
+            graphFilename=embeddingFilename, output="PartitionedCall:1"
+        )
     return (embedding_model,)
 
 
@@ -212,7 +223,9 @@ def _(MODEL_FOLDER, TensorflowPredictEffnetDiscogs, os, tf):
 def _(MonoLoader, embedding_model, mo, os, pd, track_df):
     def getSongEmbeddings(path: str):
         real_path = path.replace(os.getenv("DRIVE"), "/data")
-        audio = MonoLoader(filename=real_path, sampleRate=16000, resampleQuality=4)()
+        audio = MonoLoader(
+            filename=real_path, sampleRate=16000, resampleQuality=4
+        )()
         return embedding_model(audio)
 
     song_paths = track_df["song_path"].tolist()
@@ -238,9 +251,13 @@ def _(MonoLoader, embedding_model, mo, os, pd, track_df):
 def _(MODEL_FOLDER, TensorflowPredict2D, embeddings_list, mo, os, track_df):
     # approachability
     approachabilityModelName = os.path.join(
-        MODEL_FOLDER, "approachability", "approachability_regression-discogs-effnet-1.pb"
+        MODEL_FOLDER,
+        "approachability",
+        "approachability_regression-discogs-effnet-1.pb",
     )
-    approachabilityModel = TensorflowPredict2D(graphFilename=approachabilityModelName, output="model/Identity")
+    approachabilityModel = TensorflowPredict2D(
+        graphFilename=approachabilityModelName, output="model/Identity"
+    )
 
     track_df["pred_approachability"] = [
         approachabilityModel(emb).mean(axis=0)
@@ -272,8 +289,12 @@ def _(
     os,
     track_df,
 ):
-    danceModelName = os.path.join(MODEL_FOLDER, "danceability", "danceability-discogs-effnet-1.pb")
-    danceModel = TensorflowPredict2D(graphFilename=danceModelName, output="model/Softmax")
+    danceModelName = os.path.join(
+        MODEL_FOLDER, "danceability", "danceability-discogs-effnet-1.pb"
+    )
+    danceModel = TensorflowPredict2D(
+        graphFilename=danceModelName, output="model/Softmax"
+    )
 
     track_df[["pred_danceable", "pred_not_danceable"]] = np.vstack(
         [
@@ -295,8 +316,12 @@ def _(
 @app.cell
 def _(MODEL_FOLDER, TensorflowPredict2D, embeddings_list, mo, os, track_df):
     # engagement
-    engageModelName = os.path.join(MODEL_FOLDER, "engagement", "engagement_regression-discogs-effnet-1.pb")
-    engageModel = TensorflowPredict2D(graphFilename=engageModelName, output="model/Identity")
+    engageModelName = os.path.join(
+        MODEL_FOLDER, "engagement", "engagement_regression-discogs-effnet-1.pb"
+    )
+    engageModel = TensorflowPredict2D(
+        graphFilename=engageModelName, output="model/Identity"
+    )
 
     track_df["pred_engagement"] = [
         engageModel(emb).mean(axis=0)
@@ -324,9 +349,18 @@ def _(
     os,
     track_df,
 ):
-    moodModelName = os.path.join(MODEL_FOLDER, "moodAndTheme", "mtg_jamendo_moodtheme-discogs-effnet-1.pb")
+    # mood and theme
+    moodModelName = os.path.join(
+        MODEL_FOLDER,
+        "moodAndTheme",
+        "mtg_jamendo_moodtheme-discogs-effnet-1.pb",
+    )
     moodModel = TensorflowPredict2D(graphFilename=moodModelName)
-    moodModelMedatadaPath = os.path.join(MODEL_FOLDER, "moodAndTheme", "mtg_jamendo_moodtheme-discogs-effnet-1.json")
+    moodModelMedatadaPath = os.path.join(
+        MODEL_FOLDER,
+        "moodAndTheme",
+        "mtg_jamendo_moodtheme-discogs-effnet-1.json",
+    )
 
     with open(moodModelMedatadaPath) as json_file:
         moodModelClasses = json.load(json_file)["classes"]
@@ -350,13 +384,18 @@ def _(
 
 @app.cell
 def _(MODEL_FOLDER, MonoLoader, TempoCNN, mo, os, track_df):
+    # tempo
     tempoModelName = os.path.join(MODEL_FOLDER, "tempo", "deeptemp-k4-3.pb")
     tempoModel = TempoCNN(graphFilename=tempoModelName)
 
     def gettempo(path: str):
         real_path = path.replace(os.getenv("DRIVE"), "/data")
-        audio = MonoLoader(filename=real_path, sampleRate=11025, resampleQuality=4)()
-        global_tempo, local_tempo, local_tempo_probabilities = tempoModel(audio)
+        audio = MonoLoader(
+            filename=real_path, sampleRate=11025, resampleQuality=4
+        )()
+        global_tempo, local_tempo, local_tempo_probabilities = tempoModel(
+            audio
+        )
         return global_tempo  # single BPM float
 
     track_df["pred_tempo"] = [
@@ -376,8 +415,14 @@ def _(MODEL_FOLDER, MonoLoader, TempoCNN, mo, os, track_df):
 
 @app.cell
 def _(DATASET_FOLDER, embeddings_list, np, os):
-    embeddingsPath = os.path.join(DATASET_FOLDER, "fma_large_embeddings", "discogs-effnet.npy")
-    np.save(embeddingsPath, np.array(embeddings_list, dtype=object), allow_pickle=True)
+    embeddingsPath = os.path.join(
+        DATASET_FOLDER, "fma_large_embeddings", "discogs-effnet.npy"
+    )
+    np.save(
+        embeddingsPath,
+        np.array(embeddings_list, dtype=object),
+        allow_pickle=True,
+    )
     return
 
 

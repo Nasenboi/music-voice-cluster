@@ -50,6 +50,7 @@ def _():
     )
 
     return (
+        AUDIO_FOLDER,
         CSV_FOLDER,
         DATASET_FOLDER,
         PLOT_FOLDER,
@@ -99,13 +100,15 @@ def _():
 
 
 @app.cell
-def _(CSV_FOLDER, DATASET_FOLDER, load_survey_data, os):
+def _(AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER, load_survey_data, os):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
     CSV_PATHS = {
         "participants": os.path.join(SURVEY_FOLDER, "participants.csv"),
         "songs": os.path.join(SURVEY_FOLDER, "songs.csv"),
         "answers": os.path.join(SURVEY_FOLDER, "surveyAnswers.csv"),
         "questions": os.path.join(SURVEY_FOLDER, "surveyQuestions.csv"),
+        "song_files": os.path.join(AUDIO_FOLDER, "fma_large"),
+        "stem_files": os.path.join(AUDIO_FOLDER, "fma_large_stems"),
         "tracks": os.path.join(
             CSV_FOLDER,
             "LargeDataset",
@@ -167,10 +170,8 @@ def _(mo, pd, phoneme_df, questions_df, wasserstein_distance_nd):
         norm_dist = (emd_2 - emd_1) / (emd_1 + emd_2)
         return (norm_dist + 1) / 2
 
-
     def get_phoneme_features_per_track(trackID, feature_df):
         return feature_df[phoneme_df.trackID == trackID]
-
 
     def get_local_feature_emd_distance_diff(
         question,
@@ -180,7 +181,6 @@ def _(mo, pd, phoneme_df, questions_df, wasserstein_distance_nd):
         a_1 = get_phoneme_features_per_track(question["A"], feature_df)
         a_2 = get_phoneme_features_per_track(question["B"], feature_df)
         return get_emd_distance_diff(x, a_1, a_2)
-
 
     def run_emd_distance_diff_algorithm(feature_df):
         columns = {}
@@ -219,8 +219,9 @@ def _(get_emd_distance_diff, get_phoneme_features_per_track, pd, questions_df):
         a_2 = get_phoneme_features_per_track(question["B"], feature_df)
         return get_emd_distance_diff(x, a_1, a_2)
 
-
-    def run_joint_emd_distance_diff_algorithm(feature_df: pd.DataFrame) -> pd.Series:
+    def run_joint_emd_distance_diff_algorithm(
+        feature_df: pd.DataFrame,
+    ) -> pd.Series:
         """Runs the EMD distance-diff algorithm once per question, using the
         entire feature_df (all columns/features at once) as the distribution
         for each track, rather than computing one score per feature column."""
@@ -281,7 +282,9 @@ def _(get_mfcc_stats, mfcc_config, mo, np, pd, phoneme_df, phonemes, scale_df):
                 [
                     get_mfcc_stats(x, **mfcc_config)
                     for x in mo.status.progress_bar(
-                        phonemes, title="Calculating MFCCs...", remove_on_exit=True
+                        phonemes,
+                        title="Calculating MFCCs...",
+                        remove_on_exit=True,
                     )
                 ]
             ),
@@ -336,7 +339,7 @@ def _(
         target_feature=questions_df["A_perc"],
         top_x=10,
         on_left_margin=0.05,
-        save_path=os.path.join(PLOT_SAVE_DIR, "mfcc_corr_bar.png")
+        save_path=os.path.join(PLOT_SAVE_DIR, "mfcc_corr_bar.png"),
     )
     return
 
@@ -538,7 +541,12 @@ def _(SAMPLE_RATE, librosa):
         """Calculates mel-frequency energy values from audio samples (y), sampled at SAMPLE_RATE (16 kHz)"""
         n_fft = min(2048, len(y))
         mel_spec = librosa.feature.melspectrogram(
-            y=y, sr=SAMPLE_RATE, n_mels=n_mels, fmin=fmin, fmax=fmax, n_fft=n_fft
+            y=y,
+            sr=SAMPLE_RATE,
+            n_mels=n_mels,
+            fmin=fmin,
+            fmax=fmax,
+            n_fft=n_fft,
         )
         return librosa.power_to_db(mel_spec).mean(axis=1)  # shape: (n_mels,)
 
@@ -562,7 +570,9 @@ def _(
                 [
                     get_mel_frequencies(x, **mel_config)
                     for x in mo.status.progress_bar(
-                        phonemes, title="Calculating Mels...", remove_on_exit=True
+                        phonemes,
+                        title="Calculating Mels...",
+                        remove_on_exit=True,
                     )
                 ]
             ),
@@ -616,7 +626,7 @@ def _(
         feature_df=mel_emd_distance_diff_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
-        save_path=os.path.join(PLOT_SAVE_DIR, "mel_band_corr_bar.png")
+        save_path=os.path.join(PLOT_SAVE_DIR, "mel_band_corr_bar.png"),
     )
     return
 

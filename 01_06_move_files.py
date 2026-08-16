@@ -101,7 +101,7 @@ def _(os, track_df):
 @app.cell
 def _(mo):
     mo.md(r"""
-    # Move Relecant Files to "Release" Folder
+    # Move Relevant Files to "Release" Folder
     """)
     return
 

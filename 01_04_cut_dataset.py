@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(width="full")
 
 
@@ -64,7 +64,7 @@ def _(DATASET_FOLDER, PLOT_FOLDER, os, torch):
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     phoneme_save_path = os.path.join(DATASET_FOLDER, "fma_large_phonemes")
     SAMPLE_RATE = 16_000
-    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2")
+    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2", "01_04")
     return PLOT_SAVE_DIR, phoneme_save_path
 
 

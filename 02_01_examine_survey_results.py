@@ -23,7 +23,14 @@ def _():
     import pandas as pd
     from sklearn.metrics import cohen_kappa_score
 
-    from src.globals import AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER, STEMS_FOLDER, TRACKS_PATH, UVR_MODEL_PATH
+    from src.globals import (
+        AUDIO_FOLDER,
+        CSV_FOLDER,
+        DATASET_FOLDER,
+        STEMS_FOLDER,
+        TRACKS_PATH,
+        UVR_MODEL_PATH,
+    )
 
     # utils.py file
     # in: FMA: A Dataset For Music Analysis
@@ -32,17 +39,27 @@ def _():
     from src.submodules.FMA.utils import get_audio_path, load
     from src.survey_dataset_helpers import load_survey_data
 
-    return CSV_FOLDER, DATASET_FOLDER, load_survey_data, mo, os, pd
+    return (
+        AUDIO_FOLDER,
+        CSV_FOLDER,
+        DATASET_FOLDER,
+        load_survey_data,
+        mo,
+        os,
+        pd,
+    )
 
 
 @app.cell
-def _(CSV_FOLDER, DATASET_FOLDER, os):
+def _(AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER, os):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
     CSV_PATHS = {
         "participants": os.path.join(SURVEY_FOLDER, "participants.csv"),
         "songs": os.path.join(SURVEY_FOLDER, "songs.csv"),
         "answers": os.path.join(SURVEY_FOLDER, "surveyAnswers.csv"),
         "questions": os.path.join(SURVEY_FOLDER, "surveyQuestions.csv"),
+        "song_files": os.path.join(AUDIO_FOLDER, "fma_large"),
+        "stem_files": os.path.join(AUDIO_FOLDER, "fma_large_stems"),
         "tracks": os.path.join(
             CSV_FOLDER,
             "LargeDataset",
@@ -115,12 +132,21 @@ def _(participants_df, pd):
     def increase_score(g, v=1):
         genre_scores[g] = genre_scores.get(g, 0) + v
 
-    participants_df[participants_df.surveyCompleted].genre1.apply(lambda g: increase_score(g))
-    participants_df[participants_df.surveyCompleted].genre2.apply(lambda g: increase_score(g))
-    participants_df[participants_df.surveyCompleted].genre3.apply(lambda g: increase_score(g))
+    participants_df[participants_df.surveyCompleted].genre1.apply(
+        lambda g: increase_score(g)
+    )
+    participants_df[participants_df.surveyCompleted].genre2.apply(
+        lambda g: increase_score(g)
+    )
+    participants_df[participants_df.surveyCompleted].genre3.apply(
+        lambda g: increase_score(g)
+    )
 
     genre_score_df = pd.DataFrame.from_dict(
-        {g: v / len(participants_df[participants_df.surveyCompleted]) for g, v in genre_scores.items()},
+        {
+            g: v / len(participants_df[participants_df.surveyCompleted])
+            for g, v in genre_scores.items()
+        },
         orient="index",
         columns=["score"],
     )
@@ -138,11 +164,19 @@ def _(mo):
 
 @app.cell
 def _(answers_df, participants_df, questions_df):
-    ab_ratio_a = 100 * len(answers_df[answers_df.answer_1 == "A"]) / len(answers_df)
-    ab_ratio_b = 100 * len(answers_df[answers_df.answer_1 == "B"]) / len(answers_df)
+    ab_ratio_a = (
+        100 * len(answers_df[answers_df.answer_1 == "A"]) / len(answers_df)
+    )
+    ab_ratio_b = (
+        100 * len(answers_df[answers_df.answer_1 == "B"]) / len(answers_df)
+    )
 
-    instruments_on_yes = 100 * len(answers_df[answers_df.backgroundMusic]) / len(answers_df)
-    instruments_on_no = 100 * len(answers_df[~answers_df.backgroundMusic]) / len(answers_df)
+    instruments_on_yes = (
+        100 * len(answers_df[answers_df.backgroundMusic]) / len(answers_df)
+    )
+    instruments_on_no = (
+        100 * len(answers_df[~answers_df.backgroundMusic]) / len(answers_df)
+    )
 
     print(f"""
     Total number of participants: {len(participants_df)}
@@ -215,7 +249,9 @@ def _(mo):
 def _(multi_answer_mask, pe, po, questions_df):
     # agreement for max entropy questions:
     randomized_mask = questions_df["randomized"]
-    po_max_kappa = questions_df[multi_answer_mask & (~randomized_mask)].agreement.mean()
+    po_max_kappa = questions_df[
+        multi_answer_mask & (~randomized_mask)
+    ].agreement.mean()
 
     kappa_max_ent = (po - pe) / (1 - pe)
     print(f"""
@@ -230,7 +266,9 @@ def _(multi_answer_mask, pe, po, questions_df):
 @app.cell
 def _(multi_answer_mask, pe, po, questions_df, randomized_mask):
     # agreement for random questions:
-    po_rand = questions_df[multi_answer_mask & randomized_mask].agreement.mean()
+    po_rand = questions_df[
+        multi_answer_mask & randomized_mask
+    ].agreement.mean()
 
     kappa_rand = (po - pe) / (1 - pe)
     print(f"""
@@ -260,7 +298,9 @@ def _(multi_answer_mask, questions_df):
 
 @app.cell
 def _(instrument_mask1, instrument_mask2, multi_answer_mask, pe, questions_df):
-    po_i_differ = questions_df[instrument_mask1 & instrument_mask2 & multi_answer_mask].agreement.mean()
+    po_i_differ = questions_df[
+        instrument_mask1 & instrument_mask2 & multi_answer_mask
+    ].agreement.mean()
 
     kappa_i_differ = (po_i_differ - pe) / (1 - pe)
     print(f"""
@@ -274,7 +314,9 @@ def _(instrument_mask1, instrument_mask2, multi_answer_mask, pe, questions_df):
 
 @app.cell
 def _(instrument_mask1, instrument_mask2, multi_answer_mask, pe, questions_df):
-    po_i_same = questions_df[~(instrument_mask1 & instrument_mask2) & multi_answer_mask].agreement.mean()
+    po_i_same = questions_df[
+        ~(instrument_mask1 & instrument_mask2) & multi_answer_mask
+    ].agreement.mean()
 
     kappa_i_same = (po_i_same - pe) / (1 - pe)
     print(f"""
@@ -311,7 +353,9 @@ def _(questions_df):
 
 @app.cell
 def _(gender_distribution_mask, multi_answer_mask, pe, questions_df):
-    po_g_differ = questions_df[gender_distribution_mask & multi_answer_mask].agreement.mean()
+    po_g_differ = questions_df[
+        gender_distribution_mask & multi_answer_mask
+    ].agreement.mean()
 
     kappa_g_differ = (po_g_differ - pe) / (1 - pe)
     print(f"""
@@ -325,7 +369,9 @@ def _(gender_distribution_mask, multi_answer_mask, pe, questions_df):
 
 @app.cell
 def _(gender_distribution_mask, multi_answer_mask, pe, questions_df):
-    po_g_same = questions_df[~gender_distribution_mask & multi_answer_mask].agreement.mean()
+    po_g_same = questions_df[
+        ~gender_distribution_mask & multi_answer_mask
+    ].agreement.mean()
 
     kappa_g_same = (po_g_same - pe) / (1 - pe)
     print(f"""

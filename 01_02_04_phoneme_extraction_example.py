@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
@@ -23,7 +23,9 @@ def _():
     import numpy as np
     import pandas as pd
     import torch
+    import langcodes
 
+    from src.phoneme_extractor.helpers import plot_mel_phonemes
     from src.globals import (
         AUDIO_FOLDER,
         CSV_FOLDER,
@@ -32,22 +34,54 @@ def _():
         STEMS_FOLDER,
         TRACKS_PATH,
         UVR_MODEL_PATH,
+        PLOT_FOLDER,
     )
+    from src.survey_dataset_helpers import load_tracks_df
     from src.utils import get_trimmed_audio
 
     return (
+        AUDIO_FOLDER,
         CSV_FOLDER,
         MODEL_FOLDER,
+        PLOT_FOLDER,
         get_trimmed_audio,
+        langcodes,
         librosa,
+        load_tracks_df,
         mo,
         np,
         os,
         pathlib,
-        pd,
+        plot_mel_phonemes,
         plt,
         torch,
     )
+
+
+@app.cell
+def _():
+    # load after other imports to avoid crashes....
+    return
+
+
+@app.cell
+def _():
+    from qwen_asr import Qwen3ASRModel
+
+    return (Qwen3ASRModel,)
+
+
+@app.cell
+def _():
+    from bournemouth_aligner import PhonemeTimestampAligner
+
+    return (PhonemeTimestampAligner,)
+
+
+@app.cell
+def _(PLOT_FOLDER, os):
+    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2", "01_02_04")
+    return (PLOT_SAVE_DIR,)
 
 
 @app.cell(hide_code=True)
@@ -59,15 +93,17 @@ def _(mo):
 
 
 @app.cell
-def _(CSV_FOLDER, os, pd):
-    track_df = pd.read_csv(
-        os.path.join(
-            CSV_FOLDER,
-            "LargeDataset",
-            "additional_features",
-            "high_level_features.csv",
-        ),
-        index_col="track_id",
+def _(AUDIO_FOLDER, CSV_FOLDER, load_tracks_df, os):
+    track_df = load_tracks_df(
+        {
+            "song_files": os.path.join(AUDIO_FOLDER, "fma_large"),
+            "stem_files": os.path.join(AUDIO_FOLDER, "fma_large_stems"),
+            "tracks": os.path.join(
+                CSV_FOLDER,
+                "LargeDataset",
+                "dataset_survey_2_final.csv",
+            ),
+        }
     )
     track_df
     return (track_df,)
@@ -93,15 +129,15 @@ def _(VOCAL_PATH, pathlib):
 @app.cell
 def _(SAMPLE_RATE, VOCAL_PATH, get_trimmed_audio, np):
     # y, sr = librosa.load(VOCAL_PATH, sr=SAMPLE_RATE, mono=True)
-    y_snippets = get_trimmed_audio(VOCAL_PATH, sr=SAMPLE_RATE, to_tensor=False, concat=False, min_duration=2)
+    y_snippets = get_trimmed_audio(
+        VOCAL_PATH,
+        sr=SAMPLE_RATE,
+        to_tensor=False,
+        concat=False,
+        min_duration=2,
+    )
     y = np.concatenate(y_snippets, axis=-1)
     return y, y_snippets
-
-
-@app.cell
-def _(y_snippets):
-    len(y_snippets)
-    return
 
 
 @app.cell
@@ -112,11 +148,15 @@ def _(SAMPLE_RATE, mo, y_snippets):
 
 @app.cell
 def _(SAMPLE_RATE, librosa, np, plt, y):
-    S = librosa.feature.melspectrogram(y=y, sr=SAMPLE_RATE, n_mels=128, fmax=8000)
+    S = librosa.feature.melspectrogram(
+        y=y, sr=SAMPLE_RATE, n_mels=128, fmax=8000
+    )
 
     fig, ax = plt.subplots()
     S_dB = librosa.power_to_db(S, ref=np.max)
-    img = librosa.display.specshow(S_dB, x_axis="time", y_axis="mel", sr=SAMPLE_RATE, fmax=8000, ax=ax)
+    img = librosa.display.specshow(
+        S_dB, x_axis="time", y_axis="mel", sr=SAMPLE_RATE, fmax=8000, ax=ax
+    )
     fig.colorbar(img, ax=ax, format="%+2.0f dB")
     ax.set(title="Mel-frequency spectrogram")
     return
@@ -130,13 +170,6 @@ def _(mo):
     - Python Package from [GitHub](https://github.com/QwenLM/Qwen3-ASR)
     """)
     return
-
-
-@app.cell
-def _():
-    from qwen_asr import Qwen3ASRModel
-
-    return (Qwen3ASRModel,)
 
 
 @app.cell
@@ -182,7 +215,9 @@ def _(SAMPLE_RATE, asr_model, y_snippets):
             asr_text = f.read()
     """
 
-    asr_results = [asr_model.transcribe(audio=(s, SAMPLE_RATE))[0] for s in y_snippets]
+    asr_results = [
+        asr_model.transcribe(audio=(s, SAMPLE_RATE))[0] for s in y_snippets
+    ]
     asr_texts = [asr.text for asr in asr_results]
     asr_texts[0]
     return asr_results, asr_texts
@@ -195,9 +230,7 @@ def _(SAMPLE_RATE, mo, y_snippets):
 
 
 @app.cell
-def _(asr_result, asr_results):
-    import langcodes
-
+def _(asr_result, asr_results, langcodes):
     def to_language_code(lang: str) -> str:
         code = langcodes.find(lang)
         return f"{code.language}"
@@ -227,13 +260,6 @@ def _(mo):
 
 
 @app.cell
-def _():
-    from bournemouth_aligner import PhonemeTimestampAligner
-
-    return (PhonemeTimestampAligner,)
-
-
-@app.cell
 def _(MODEL_FOLDER, os):
     fa_model_path = os.path.join(
         MODEL_FOLDER,
@@ -245,7 +271,9 @@ def _(MODEL_FOLDER, os):
 
 @app.cell
 def _(PhonemeTimestampAligner, fa_model_path):
-    aligner = PhonemeTimestampAligner(preset="asr_lanugage", cupe_ckpt_path=fa_model_path)
+    aligner = PhonemeTimestampAligner(
+        preset="asr_lanugage", cupe_ckpt_path=fa_model_path
+    )
     return (aligner,)
 
 
@@ -269,110 +297,7 @@ def _(aligner, asr_texts, audios):
 
 
 @app.cell
-def _(fa_restult):
-    fa_restult
-    return
-
-
-@app.cell
-def _(y_snippets):
-    y_snippets[0].shape
-    return
-
-
-@app.cell
-def _(fa_restult):
-    fa_restult[0]["segments"][0]
-    return
-
-
-@app.cell
-def _(fa_restult):
-    fa_restult[0]["segments"][0]["phoneme_ts"]
-    return
-
-
-@app.cell
-def _(plt, torch):
-    def plot_mel_phonemes(mel, compress_framesed, save_path="mel_phonemes.png"):
-        """
-        Plot mel spectrogram with phoneme IDs overlaid directly on the spectrogram
-
-        Args:
-            mel: Mel spectrogram tensor [frames, mel_bins]
-            compress_framesed: List of [phoneme_id, count] pairs representing phoneme alignment per frame
-            save_path: Path to save the plot
-        """
-        assert mel.dim() == 2, f"Expected 2D mel tensor, got {mel.dim()}D"
-        phn_frame_ids = [phoneme_id for phoneme_id, _ in compress_framesed]
-        phn_frame_counts = [count for _, count in compress_framesed]
-
-        # Create single plot - make it twice as wide
-        fig, ax = plt.subplots(1, 1, figsize=(30, 8))
-
-        # Convert mel to numpy for plotting
-        mel_np = mel.cpu().numpy() if isinstance(mel, torch.Tensor) else mel
-
-        # Add statistics to title instead of overlaying on spectrum
-        unique_phonemes = len(set(phn_frame_ids))
-        stats_text = f"Frames: {sum(phn_frame_counts)} | Unique Phonemes: {unique_phonemes} | Mel Bins: {mel.shape[1]}"
-        title_text = f"Mel Spectrogram with Phoneme Alignment\n{stats_text}"
-
-        # Plot mel spectrogram
-        im = ax.imshow(
-            mel_np.T,
-            aspect="auto",
-            origin="lower",
-            cmap="viridis",
-            interpolation="nearest",
-        )
-        ax.set_ylabel("Mel Bins")
-        ax.set_xlabel("Frame Index")
-        ax.set_title(title_text)
-        plt.colorbar(im, ax=ax, label="Magnitude")
-
-        # Overlay phoneme information
-        frame_pos = 0
-        for phn_id, count in zip(phn_frame_ids, phn_frame_counts):
-            # Draw vertical boundary lines (except for first segment)
-            if frame_pos > 0:
-                ax.axvline(
-                    x=frame_pos - 0.5,
-                    color="red",
-                    linestyle="-",
-                    alpha=0.8,
-                    linewidth=2,
-                )
-
-            # Add phoneme ID text at the top of the spectrogram
-            if count > 1:  # Only add text if segment is wide enough
-                text_x = frame_pos + count / 2
-                text_y = mel.shape[1] - 2  # Near the top of the mel bins
-
-                # Add text with background for visibility
-                ax.text(
-                    text_x,
-                    text_y,
-                    str(phn_id),
-                    ha="center",
-                    va="center",
-                    fontsize=12,
-                    fontweight="bold",
-                    color="white",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor="red", alpha=0.8),
-                )
-
-            frame_pos += count
-
-        plt.tight_layout()
-        plt.show()
-        return save_path
-
-    return (plot_mel_phonemes,)
-
-
-@app.cell
-def _(aligner, audios, fa_restult, plot_mel_phonemes):
+def _(PLOT_SAVE_DIR, aligner, audios, fa_restult, os, plot_mel_phonemes):
     mel_spec = aligner.extract_mel_spectrum(
         audios[0].cpu()[0].unsqueeze(0),
         wav_sample_rate=aligner.resampler_sample_rate,
@@ -392,23 +317,23 @@ def _(aligner, audios, fa_restult, plot_mel_phonemes):
         select_key="phoneme_id",
     )
 
-    frames_assorted = [aligner.phoneme_id_to_label.get(pid, "...") for pid in frames_assorted]
+    frames_assorted = [
+        aligner.phoneme_id_to_label.get(pid, "...") for pid in frames_assorted
+    ]
 
     compress_framesed = aligner.compress_frames(frames_assorted)
 
-    plot_mel_phonemes(mel_spec, compress_framesed)
+    plot_mel_phonemes(
+        mel_spec,
+        compress_framesed,
+        save_path=os.path.join(PLOT_SAVE_DIR, "phoneme_split_result.png"),
+    )
     return
 
 
 @app.cell
 def _(SAMPLE_RATE, mo, y_snippets):
     mo.audio(y_snippets[0], rate=SAMPLE_RATE)
-    return
-
-
-@app.cell
-def _(SAMPLE_RATE):
-    SAMPLE_RATE
     return
 
 

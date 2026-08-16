@@ -39,6 +39,7 @@ Digital voice representations are compared with the survey results in this step.
 | DATASET_FOLDER/fma_large_triplets/mel_spec_enc_nlognK_survey_2.npy | Numpy array containing heuristically chosen triplets in form of indicies that are used in the second survey |
 | AUDIO_FOLDER/fma_large(_stems)/XYZ | The audio files and vocal stems |
 
+**Note.** The early notebooks (1.X, those used for dataset creation) are provided for reference/documentation purposes only and are not intended to be executed. They reference older dataset versions and possibly fail with file-not-found errors if run with the current dataset structure. The notebooks were not updated to use the latest version of the dataset csv-file, as this would impact the code's accurarcy.
 
 #### Steps
 

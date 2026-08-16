@@ -85,7 +85,7 @@ def _(CSV_FOLDER, DATASET_FOLDER, os):
 
 @app.cell
 def _(PLOT_FOLDER, os):
-    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2")
+    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2", "03_01")
     return (PLOT_SAVE_DIR,)
 
 
