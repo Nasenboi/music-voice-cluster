@@ -1,6 +1,6 @@
 # Similarity of Singing Voices
 
-The repository for my master thesis.
+The research repository for my master thesis. The included code was used to create the survey's dataset and to analyze the results. 
 
 ## Dataset
 
@@ -24,17 +24,20 @@ Digital voice representations are compared with the survey results in this step.
 
 ## Run the Notebooks
 
+**Note.** Marimo notebooks do not store the cells' output in contrast to Jupyter notebooks. While this has the advantage of less storage required and better versioning with git, the notebooks have to be run every time to view output. However the results of this thesis are rendered as graphs and plots, grouped by the notebooks name. The code in the notebooks itself should be seen as a reference for what steps were completed to generate the output figures — especially because some notebooks take a long time to complete (for example to run model inference).
+
 #### Requirements
 - !! Code tested on for Linux systems so far !! (_should_ work on other systems too though)
 - [Python](https://www.python.org/) and [Conda](https://www.anaconda.com/)
 - For model inference ideally [CUDA](https://developer.nvidia.com/cuda/toolkit) — the python environments also require CUDA drivers, environments without it have not been tested yet (may cause bugs)
 - For infrerence on the included [models](#models) the corresponding weights / model files are required.
 - Check if the most important files are present:  
+
 | File | Description |
 | ---- | ----------- |
 | CSV_FOLDER/large_dataset/dataset_survey_2_final.csv| Contains metadata for the 50 audio tracks |
-| DATASET_FOLDER/fma_large_triplets/mel_spec_enc_nlognK_survey_2.npy | The numpy array containing heuristically chosen triplet pairs in form of indicies used in the second survey |
-| DATASET_FOLDER/fma_large/XYZ |  |
+| DATASET_FOLDER/fma_large_triplets/mel_spec_enc_nlognK_survey_2.npy | Numpy array containing heuristically chosen triplets in form of indicies that are used in the second survey |
+| AUDIO_FOLDER/fma_large(_stems)/XYZ | The audio files and vocal stems |
 
 
 #### Steps
@@ -55,7 +58,12 @@ conda activate sosv # or sosv-np1 for notebook 3.3.2
     - MODEL_FOLDER: the folder for machine learning models, each have their own subfolder.
     - CSV_FOLDER: additional CSV files, including checkpoints of the subjective audio labeling and the whole song and metadata dataset — one of the most important files for this repository.
     - PLOT_FOLDER: in here are the plots created by Python notebooks — each with their own subfolder.
-
+    - AUDIO_FOLDER: the folder for the audio files, with the subfolders `fma_large` and `fma_large_stems`
+3. There is a function to load the dataset tables used in most of the notebooks: `load_survey_data` from [survey dataset helpers](src/survey_dataset_helpers.py) which takes a dictionary of file paths as input. This is the essential function that needs to work for all subsequent steps. Run this function from any notebook, like [2.1 Examine Survey Results](02_01_examine_survey_results.py) to check if the environment variables and paths are correct.
+4. To run a notebook, like [2.1 Examine Survey Results](02_01_examine_survey_results.py) run the command below, this should open a new window in your default browser with the chosen notebook active.
+```bash
+marimo edit 02_01_examine_survey_results.py
+```
 
 ## References
 
