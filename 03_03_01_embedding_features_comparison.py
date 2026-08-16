@@ -167,7 +167,9 @@ def _(encoder, get_embedding, np, pd, scale_df, track_df):
 
 @app.cell
 def _(embedding_df, get_global_distance_scores, questions_df):
-    embedding_gda_df = get_global_distance_scores(embedding_df, questions_df)
+    embedding_gda_df = get_global_distance_scores(
+        embedding_df, questions_df, feature_name="ecapa-tdnn"
+    )
     embedding_gda_df
     return (embedding_gda_df,)
 
@@ -228,7 +230,7 @@ def _(
     plot_correlation_scatter(
         title="ECAPA-TDNN Embeddings (Cosine Similarity)",
         feature_name="ECAPA_Embeddings_Cosine",
-        y=embedding_gda_df["distance_cosine"],
+        y=embedding_gda_df["ecapa-tdnn_distance_cosine"],
         x=questions_df["A_perc"],
         save_path=os.path.join(
             PLOT_SAVE_DIR,
@@ -296,7 +298,7 @@ def _(
 @app.cell
 def _(get_global_distance_scores, questions_df, sID_embedding_df):
     sID_embedding_gda_df = get_global_distance_scores(
-        sID_embedding_df, questions_df
+        sID_embedding_df, questions_df, feature_name="singer-id"
     )
     return (sID_embedding_gda_df,)
 
@@ -375,7 +377,7 @@ def _(
     plot_correlation_scatter(
         title="Singer ID Embeddings (Cosine Similarity)",
         feature_name="Singer_ID_Embeddings_Cosine",
-        y=sID_embedding_gda_df["distance_cosine"],
+        y=sID_embedding_gda_df["singer-id_distance_cosine"],
         x=questions_df["A_perc"],
         save_path=os.path.join(
             PLOT_SAVE_DIR,

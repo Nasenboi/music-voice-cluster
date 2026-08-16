@@ -38,15 +38,8 @@ def _():
         TRACKS_PATH,
         UVR_MODEL_PATH,
     )
-    from src.statistics.feature_correlation import (
-        get_all_distance_differences,
-        get_global_distance_scores,
-        scale_df,
-    )
-    from src.statistics.plotting import (
-        plot_correlation_bar,
-        plot_correlation_scatter,
-    )
+    from src.statistics.feature_correlation import get_all_distance_differences, get_global_distance_scores, scale_df
+    from src.statistics.plotting import plot_correlation_bar, plot_correlation_scatter
     from src.survey_dataset_helpers import load_survey_data
     from src.utils import get_trimmed_audio
 
@@ -162,9 +155,7 @@ def _(
             "pred_age_no_trim",
         ],
     )
-    hl_distances = get_all_distance_differences(
-        scaled_track_df, hl_features, questions_df
-    )
+    hl_distances = get_all_distance_differences(scaled_track_df, hl_features, questions_df)
     hl_distances
     return (hl_distances,)
 
@@ -176,9 +167,8 @@ def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_bar, questions_df):
         feature_df=hl_distances,
         target_feature=questions_df["A_perc"],
         top_x=len(hl_distances.columns) - 1,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "High-Level Feature Correlations (Individual).png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "High-Level Feature Correlations (Individual).png"),
+        output=True,
     )
     return
 
@@ -219,9 +209,7 @@ def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_scatter, questions_df):
         feature_name="Gender",
         x=questions_df["A_perc"],
         y=hl_distances["pred_gender"],
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "Gender Feature Correlation Scatter.png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "Gender Feature Correlation Scatter.png"),
     )
     return
 
@@ -248,6 +236,7 @@ def _(get_global_distance_scores, questions_df, track_df):
             ]
         ],
         questions_df,
+        feature_name="high-level",
     )
     return (hl_feature_distances_df,)
 
@@ -265,9 +254,7 @@ def _(
         feature_df=hl_feature_distances_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "High-Level Features Correlations (All).png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "High-Level Features Correlations (All).png"),
     )
     return
 
@@ -283,7 +270,7 @@ def _(
     plot_correlation_scatter(
         title="High Level Feature Set (Canberra)",
         feature_name="High_Level_Feature_Set_Canberra",
-        y=hl_feature_distances_df["distance_canberra"],
+        y=hl_feature_distances_df["high-level_distance_canberra"],
         x=questions_df["A_perc"],
         save_path=os.path.join(
             PLOT_SAVE_DIR,

@@ -1,6 +1,6 @@
 # Similarity of Singing Voices
 
-The research repository for my master's thesis. The included code was used to create the survey's dataset and to analyze the results. 
+This is the research repository for my master's thesis. The included code was used to create the survey's dataset and to analyze the results. 
 
 ## Dataset
 
@@ -27,19 +27,20 @@ Digital voice representations are compared with the survey results in this step.
 **Note:** Marimo notebooks do not store the cells' output in contrast to Jupyter notebooks. While this has the advantage of less storage required and better versioning with git, the notebooks have to be run every time to view output. However the results of this thesis are rendered as graphs and plots, grouped by the notebook's name. The code in the notebooks itself should be seen as a reference for what steps were completed to generate the output figures — especially because some notebooks take a long time to complete (for example, to run model inference).
 
 #### Requirements
-- !! Code tested on for Linux systems so far !! (_should_ work on other systems too though)
+- !! The code tested on for Linux systems so far !! (_should_ work on other systems too though)
 - [Python](https://www.python.org/) and [Conda](https://www.anaconda.com/)
 - For model inference ideally [CUDA](https://developer.nvidia.com/cuda/toolkit) — the Python environments also require CUDA drivers, environments without it have not been tested yet (may cause bugs)
 - For inference on the included [models](#models) the corresponding weights / model files are required.
 - Check if the most important files are present:  
 
-| File | Description |
+| File / Folder | Description |
 | ---- | ----------- |
 | CSV_FOLDER/large_dataset/dataset_survey_2_final.csv| Contains metadata for the 50 audio tracks |
 | DATASET_FOLDER/fma_large_triplets/mel_spec_enc_nlognK_survey_2.npy | Numpy array containing heuristically chosen triplets in form of indices that are used in the second survey |
+| DATASET_FOLDER/survey/survey_2 | This folder contains the questionnaires (`surveyQuestions.csv`), participant data (`participants.csv`), song metadata (`songs.csv`) and survey answers (`surveyAnswers.csv`) of the second survey |
 | AUDIO_FOLDER/fma_large(_stems)/XYZ | The audio files and vocal stems |
 
-**Note:** The early notebooks (1.X, those used for dataset creation) are provided for reference/documentation purposes only and are not intended to be executed. They reference older dataset versions and possibly fail with file-not-found errors if run with the current dataset structure. The notebooks were not updated to use the latest version of the dataset csv-file, as this would impact the code's accuracy.
+**Note:** The early notebooks (1.X, those used for dataset creation) are provided for reference/documentation purposes only and are not intended to be executed. They reference older dataset versions and possibly fail with _file-not-found_ errors if run with the current dataset structure. The notebooks were not updated to use the latest version of the dataset csv-file, as this would impact the code's accuracy.
 
 #### Steps
 

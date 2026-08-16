@@ -174,7 +174,9 @@ def get_distance_row(question, feature_df: pd.DataFrame, distance_algorithm: DIS
     return (norm_dist + 1) / 2
 
 
-def get_global_distance_scores(feature_df: pd.DataFrame, questions_df: pd.DataFrame) -> pd.DataFrame:
+def get_global_distance_scores(
+    feature_df: pd.DataFrame, questions_df: pd.DataFrame, feature_name: str = ""
+) -> pd.DataFrame:
     """Get global distance scores => global = using all features for a single distance
 
     Distance algorithms:
@@ -192,8 +194,8 @@ def get_global_distance_scores(feature_df: pd.DataFrame, questions_df: pd.DataFr
             pd.DataFrame: _description_
     """
     gda_df = pd.DataFrame()
-    for d in mo.status.progress_bar(DISTANCE_ALGORITHMS_L, title="Calculating GDAs", remove_on_exit=True):
-        gda_df[f"distance_{d}"] = questions_df.apply(
+    for d in mo.status.progress_bar(DISTANCE_ALGORITHMS_L, title="Calculating Distances", remove_on_exit=True):
+        gda_df[f"{feature_name}_distance_{d}"] = questions_df.apply(
             lambda x: get_distance_row(x, feature_df, d),
             axis=1,
         )

@@ -143,7 +143,7 @@ def plot_correlation_bar(
     xlabel: str = "Pearson's r",
     x_margin: float = 0.01,
     save_path: str = None,
-    output: bool = False,
+    output: bool = True,
     on_left_margin: float = 0.01,
 ):
     corr_df = get_feature_correlation_df(feature_df, target_feature, top_x)
@@ -206,7 +206,14 @@ def plot_correlation_bar(
     plt.show()
 
     if output:
-        return corr_df["feature"].to_list()[::-1], corr_df["r"].to_list()[::-1]
+        output_df = pd.DataFrame(
+            {
+                "feature_name": corr_df["feature"],
+                "pearsons_r": corr_df["r"].round(3),
+                "p_value": corr_df["p_value"].round(3),
+            }
+        )
+        return output_df.sort_values("pearsons_r", ascending=False).reset_index(drop=True)
 
 
 def plot_feature_connection(

@@ -41,15 +41,15 @@ def _():
     )
     from src.statistics.feature_correlation import (
         get_all_distance_differences,
+        get_distance_row,
         get_global_distance_scores,
         scale_df,
-        get_distance_row,
     )
     from src.statistics.plotting import (
         plot_correlation_bar,
+        plot_correlation_heatmap,
         plot_correlation_scatter,
         plot_feature_connection,
-        plot_correlation_heatmap,
     )
     from src.survey_dataset_helpers import load_survey_data
     from src.utils import get_trimmed_audio
@@ -155,9 +155,7 @@ def _(get_all_distance_differences, questions_df, scale_df, track_df):
             "pred_age_no_trim",
         ],
     )
-    hl_distances = get_all_distance_differences(
-        scaled_track_df, hl_features, questions_df
-    )
+    hl_distances = get_all_distance_differences(scaled_track_df, hl_features, questions_df)
     hl_distances
     return
 
@@ -190,9 +188,7 @@ def _(SAMPLE_RATE, get_trimmed_audio):
 
 @app.cell
 def _(DATASET_FOLDER, os):
-    gemaps_feature_path = os.path.join(
-        DATASET_FOLDER, "fma_large_feature_sets", "survey_2_gemaps.npy"
-    )
+    gemaps_feature_path = os.path.join(DATASET_FOLDER, "fma_large_feature_sets", "survey_2_gemaps.npy")
     return (gemaps_feature_path,)
 
 
@@ -237,9 +233,7 @@ def _(mo):
 
 @app.cell
 def _(gemaps_features_df, get_all_distance_differences, questions_df):
-    gemaps_distances = get_all_distance_differences(
-        gemaps_features_df, gemaps_features_df.columns, questions_df
-    )
+    gemaps_distances = get_all_distance_differences(gemaps_features_df, gemaps_features_df.columns, questions_df)
     gemaps_distances
     return (gemaps_distances,)
 
@@ -276,16 +270,15 @@ def _(PLOT_SAVE_DIR, gemaps_distances, os, plot_correlation_bar, questions_df):
 
 @app.cell
 def _(PLOT_SAVE_DIR, gemaps_distances, os, plot_correlation_bar, questions_df):
-    gemaps_single_f_corr, _ = plot_correlation_bar(
+    gemaps_single_f_corr = plot_correlation_bar(
         title="Individual GeMAPS Features Correlations",
         feature_df=gemaps_distances,
         target_feature=questions_df["A_perc"],
         top_x=15,
         output=True,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "GeMAPS Feature Correlations (Individual).png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "GeMAPS Feature Correlations (Individual).png"),
     )
+    gemaps_single_f_corr
     return (gemaps_single_f_corr,)
 
 
@@ -338,11 +331,9 @@ def _(
     plot_correlation_heatmap,
 ):
     plot_correlation_heatmap(
-        gemaps_features_df[gemaps_single_f_corr],
+        gemaps_features_df[gemaps_single_f_corr["feature_name"]],
         "Pairwise Pearson Correlation Coefficients (r)",
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "GeMAPS Pairwise Feature Correlations.png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "GeMAPS Pairwise Feature Correlations.png"),
         labelsize=12,
     )
     return
@@ -355,10 +346,7 @@ def _(PLOT_SAVE_DIR, gemaps_features_df, os, plot_correlation_bar, track_df):
         feature_df=gemaps_features_df,
         target_feature=track_df["pred_p_male"],
         top_x=10,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR,
-            "GeMAPS Feature Correlations (with Singers' Gender).png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "GeMAPS Feature Correlations (with Singers' Gender).png"),
     )
     return
 
@@ -381,9 +369,7 @@ def _(PLOT_SAVE_DIR, np, os, plt, questions_df):
         "Male Reference Voices, Female Target Voice",
         "Only Male Voices",
     ]
-    counts, bin_edges = np.histogram(
-        questions_df["gender_distribution"], bins=bins
-    )
+    counts, bin_edges = np.histogram(questions_df["gender_distribution"], bins=bins)
     plt.figure(figsize=(10, 4), dpi=150)
     bars = plt.barh(bin_labels, counts, color="skyblue", edgecolor="black")
     for bar in bars:
@@ -426,7 +412,7 @@ def _(
     plot_correlation_bar,
     questions_df,
 ):
-    gemaps_f_m, _ = plot_correlation_bar(
+    gemaps_f_m = plot_correlation_bar(
         title="GeMAPS Feature Correlations (Male Only)",
         feature_df=gemaps_distances[gender_m_mask],
         target_feature=questions_df[gender_m_mask]["A_perc"],
@@ -437,6 +423,7 @@ def _(
             "GeMAPS Feature Correlations (Individual, Male Only).png",
         ),
     )
+    gemaps_f_m
     return (gemaps_f_m,)
 
 
@@ -452,11 +439,11 @@ def _(
     plot_correlation_scatter(
         title="GeMAPS F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope (Male Only)",
         feature_name="F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope",
-        y=gemaps_distances[gender_m_mask][
-            "F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope"
-        ],
+        y=gemaps_distances[gender_m_mask]["F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope"],
         x=questions_df[gender_m_mask]["A_perc"],
-        save_path=os.path.join(PLOT_SAVE_DIR, "F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope Feature Correlation Scatter (Male Only).png")
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "F0semitoneFrom27.5Hz_sma3nz_stddevRisingSlope Feature Correlation Scatter (Male Only).png"
+        ),
     )
     return
 
@@ -470,7 +457,7 @@ def _(
     plot_correlation_bar,
     questions_df,
 ):
-    gemaps_f_f, _ = plot_correlation_bar(
+    gemaps_f_f = plot_correlation_bar(
         title="GeMAPS Feature Correlations (Female Only)",
         feature_df=gemaps_distances[gender_f_mask],
         target_feature=questions_df[gender_f_mask]["A_perc"],
@@ -481,6 +468,7 @@ def _(
             "GeMAPS Feature Correlations (Individual, Female Only).png",
         ),
     )
+    gemaps_f_f
     return (gemaps_f_f,)
 
 
@@ -498,7 +486,9 @@ def _(
         feature_name="StddevVoicedSegmentLengthSec",
         y=gemaps_distances[gender_f_mask]["StddevVoicedSegmentLengthSec"],
         x=questions_df[gender_f_mask]["A_perc"],
-        save_path=os.path.join(PLOT_SAVE_DIR, "StddevVoicedSegmentLengthSec Feature Correlation Scatter (Female Only).png")
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "StddevVoicedSegmentLengthSec Feature Correlation Scatter (Female Only).png"
+        ),
     )
     return
 
@@ -506,23 +496,19 @@ def _(
 @app.cell
 def _(PLOT_SAVE_DIR, gemaps_f_f, gemaps_f_m, os, plot_feature_connection):
     plot_feature_connection(
-        set_1=gemaps_f_m,
-        set_2=gemaps_f_f,
+        set_1=gemaps_f_m["feature_name"],
+        set_2=gemaps_f_f["feature_name"],
         set_1_label="Male",
         set_2_label="Female",
         title="Top Feature Correlations Depending on Gender",
-        save_path=os.path.join(PLOT_SAVE_DIR, "Top 10 GeMaps Feature Correlations by Gender.png")
+        save_path=os.path.join(PLOT_SAVE_DIR, "Top 10 GeMaps Feature Correlations by Gender.png"),
     )
     return
 
 
 @app.cell
 def _(answers_df, gender_mixed_mask, questions_df):
-    len(
-        answers_df[
-            answers_df.questionID.isin(questions_df[gender_mixed_mask].index)
-        ]
-    )
+    len(answers_df[answers_df.questionID.isin(questions_df[gender_mixed_mask].index)])
     return
 
 
@@ -535,7 +521,7 @@ def _(
     plot_correlation_bar,
     questions_df,
 ):
-    gemaps_f_mixed, _ = plot_correlation_bar(
+    gemaps_f_mixed = plot_correlation_bar(
         title="GeMAPS Feature Correlations (Mixed Gender Only)",
         feature_df=gemaps_distances[gender_mixed_mask],
         target_feature=questions_df[gender_mixed_mask]["A_perc"],
@@ -546,6 +532,7 @@ def _(
             "GeMAPS Feature Correlations (Individual, Mixed Gender Only).png",
         ),
     )
+    gemaps_f_mixed
     return
 
 
@@ -559,9 +546,7 @@ def _(mo):
 
 @app.cell
 def _(gemaps_features_df, get_global_distance_scores, questions_df):
-    gemaps_gda_df = get_global_distance_scores(
-        gemaps_features_df, questions_df
-    )
+    gemaps_gda_df = get_global_distance_scores(gemaps_features_df, questions_df, feature_name="gemaps")
     gemaps_gda_df
     return (gemaps_gda_df,)
 
@@ -573,9 +558,7 @@ def _(PLOT_SAVE_DIR, gemaps_gda_df, os, plot_correlation_bar, questions_df):
         feature_df=gemaps_gda_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "GeMAPS Features Correlations (All).png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "GeMAPS Features Correlations (All).png"),
     )
     return
 
@@ -591,7 +574,7 @@ def _(
     plot_correlation_scatter(
         title="GeMAPS Features (Canberra)",
         feature_name="Features_Canberra",
-        y=gemaps_gda_df["distance_canberra"],
+        y=gemaps_gda_df["gemaps_distance_canberra"],
         x=questions_df["A_perc"],
         save_path=os.path.join(
             PLOT_SAVE_DIR,
@@ -620,9 +603,7 @@ def _(opensmile):
 
 @app.cell
 def _(DATASET_FOLDER, os):
-    compare_feature_path = os.path.join(
-        DATASET_FOLDER, "fma_large_feature_sets", "survey_2_compare.npy"
-    )
+    compare_feature_path = os.path.join(DATASET_FOLDER, "fma_large_feature_sets", "survey_2_compare.npy")
     return (compare_feature_path,)
 
 
@@ -695,9 +676,7 @@ def _(mo):
 
 @app.cell
 def _(compare_features_df, get_global_distance_scores, questions_df):
-    compare_gda_df = get_global_distance_scores(
-        compare_features_df, questions_df
-    )
+    compare_gda_df = get_global_distance_scores(compare_features_df, questions_df, feature_name="compare")
     compare_gda_df
     return (compare_gda_df,)
 
@@ -709,9 +688,7 @@ def _(PLOT_SAVE_DIR, compare_gda_df, os, plot_correlation_bar, questions_df):
         feature_df=compare_gda_df,
         target_feature=questions_df["A_perc"],
         top_x=4,
-        save_path=os.path.join(
-            PLOT_SAVE_DIR, "ComParE Features Correlations (All).png"
-        ),
+        save_path=os.path.join(PLOT_SAVE_DIR, "ComParE Features Correlations (All).png"),
     )
     return
 
@@ -728,7 +705,7 @@ def _(
         title="ComParE Feature Set (Cosine)",
         feature_name="ComParE_Feature_Set_Cosine",
         x=questions_df["A_perc"],
-        y=compare_gda_df["distance_cosine"],
+        y=compare_gda_df["compare_distance_cosine"],
         save_path=os.path.join(
             PLOT_SAVE_DIR,
             "ComParE Features Correlation Scatter (Cosine Similarity).png",
@@ -749,15 +726,10 @@ def _(mo):
 
 @app.cell
 def _(compare_features_df, gemaps_features_df):
-    from src.statistics.opensmile_mapping import (
-        FEATURE_MAP,
-        convert_to_voice_quality_features,
-    )
+    from src.statistics.opensmile_mapping import FEATURE_MAP, convert_to_voice_quality_features
 
     VOICE_QUALITY_FEATURES = list(FEATURE_MAP.keys())
-    voice_quality_df = convert_to_voice_quality_features(
-        gemaps_features_df, compare_features_df
-    )
+    voice_quality_df = convert_to_voice_quality_features(gemaps_features_df, compare_features_df)
     voice_quality_df
     return VOICE_QUALITY_FEATURES, voice_quality_df
 
@@ -784,9 +756,7 @@ def _(
         remove_on_exit=True,
     ):
         vq_distance_diff_df[vq_feature] = questions_df.apply(
-            lambda x: get_distance_row(
-                x, voice_quality_df[vq_feature], "canberra"
-            ),
+            lambda x: get_distance_row(x, voice_quality_df[vq_feature], "canberra"),
             axis=1,
         )
     vq_distance_diff_df
