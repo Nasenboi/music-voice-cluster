@@ -1,22 +1,22 @@
 # Similarity of Singing Voices
 
-The research repository for my master thesis. The included code was used to create the survey's dataset and to analyze the results. 
+The research repository for my master's thesis. The included code was used to create the survey's dataset and to analyze the results. 
 
 ## Dataset
 
-The Dataset used in this Project is [FMA: A Dataset For Music Analysis](https://github.com/mdeff/fma) \[1\]\[2\], see the repository for more details.
+The dataset used in this project is [FMA: A Dataset For Music Analysis](https://github.com/mdeff/fma) \[1\]\[2\], see the repository for more details.
 
 ## Structure
 
-The marimo notebooks are ordered by their task and named accordingly. 
+The Marimo notebooks are ordered by their task and named accordingly. 
 
 ### 1. Dataset Preparation
 
-This step is done prior to the survey's publication. The audio, as well as the metadata are formated into a fitting schema, additional features are extracted from the audio and stored in dataframes and finally, the audio dataset is prepared for the ABX-test.
+This step is done prior to the survey's publication. The audio files, as well as the metadata, are formatted into a fitting schema. Additional features are extracted from the audio and stored in dataframes. Finally, the audio dataset is prepared for the ABX-test.
 
 ### 2. Statistical Analysis
 
-The users' behavior is analyzed by the answers and user data alone. This analysis includes calculations of agreement measures (percent values and Cohen's Kappa) and two analysis of variance (ANOVAs).
+The users' behavior is analyzed by the answers and user data alone. This analysis includes calculations of agreement measures (percent values and Cohen's Kappa) and two analyses of variance (ANOVAs).
 
 ### 3. Feature Comparison
 
@@ -24,26 +24,26 @@ Digital voice representations are compared with the survey results in this step.
 
 ## Run the Notebooks
 
-**Note.** Marimo notebooks do not store the cells' output in contrast to Jupyter notebooks. While this has the advantage of less storage required and better versioning with git, the notebooks have to be run every time to view output. However the results of this thesis are rendered as graphs and plots, grouped by the notebooks name. The code in the notebooks itself should be seen as a reference for what steps were completed to generate the output figures — especially because some notebooks take a long time to complete (for example to run model inference).
+**Note:** Marimo notebooks do not store the cells' output in contrast to Jupyter notebooks. While this has the advantage of less storage required and better versioning with git, the notebooks have to be run every time to view output. However the results of this thesis are rendered as graphs and plots, grouped by the notebook's name. The code in the notebooks itself should be seen as a reference for what steps were completed to generate the output figures — especially because some notebooks take a long time to complete (for example, to run model inference).
 
 #### Requirements
 - !! Code tested on for Linux systems so far !! (_should_ work on other systems too though)
 - [Python](https://www.python.org/) and [Conda](https://www.anaconda.com/)
-- For model inference ideally [CUDA](https://developer.nvidia.com/cuda/toolkit) — the python environments also require CUDA drivers, environments without it have not been tested yet (may cause bugs)
-- For infrerence on the included [models](#models) the corresponding weights / model files are required.
+- For model inference ideally [CUDA](https://developer.nvidia.com/cuda/toolkit) — the Python environments also require CUDA drivers, environments without it have not been tested yet (may cause bugs)
+- For inference on the included [models](#models) the corresponding weights / model files are required.
 - Check if the most important files are present:  
 
 | File | Description |
 | ---- | ----------- |
 | CSV_FOLDER/large_dataset/dataset_survey_2_final.csv| Contains metadata for the 50 audio tracks |
-| DATASET_FOLDER/fma_large_triplets/mel_spec_enc_nlognK_survey_2.npy | Numpy array containing heuristically chosen triplets in form of indicies that are used in the second survey |
+| DATASET_FOLDER/fma_large_triplets/mel_spec_enc_nlognK_survey_2.npy | Numpy array containing heuristically chosen triplets in form of indices that are used in the second survey |
 | AUDIO_FOLDER/fma_large(_stems)/XYZ | The audio files and vocal stems |
 
-**Note.** The early notebooks (1.X, those used for dataset creation) are provided for reference/documentation purposes only and are not intended to be executed. They reference older dataset versions and possibly fail with file-not-found errors if run with the current dataset structure. The notebooks were not updated to use the latest version of the dataset csv-file, as this would impact the code's accurarcy.
+**Note:** The early notebooks (1.X, those used for dataset creation) are provided for reference/documentation purposes only and are not intended to be executed. They reference older dataset versions and possibly fail with file-not-found errors if run with the current dataset structure. The notebooks were not updated to use the latest version of the dataset csv-file, as this would impact the code's accuracy.
 
 #### Steps
 
-1. Create and activate the conda environments. The base environment _sosv_ is exported to [environment.yml](environment.yml) and used for most of the notebooks. The second environment _sosv-np1_ ([environment-np-1.yml](environment-np-1.yml)) is used to tun inference on the [CVSM model](#contrastive-vocal-similarity-modeling-cvsm), as it requires tensorflow instead of torch and numpy version 1.
+1. Create and activate the conda environments. The base environment _sosv_ is exported to [environment.yml](environment.yml) and used for most of the notebooks. The second environment _sosv-np1_ ([environment-np-1.yml](environment-np-1.yml)) is needed for the [CVSM model](#contrastive-vocal-similarity-modeling-cvsm), as it requires tensorflow instead of torch and numpy version 1.
 ```bash
 conda create --file environment-npy-1.yml
 ```
@@ -61,7 +61,7 @@ conda activate sosv # or sosv-np1 for notebook 3.3.2
     - PLOT_FOLDER: in here are the plots created by Python notebooks — each with their own subfolder.
     - AUDIO_FOLDER: the folder for the audio files, with the subfolders `fma_large` and `fma_large_stems`
 3. There is a function to load the dataset tables used in most of the notebooks: `load_survey_data` from [survey dataset helpers](src/survey_dataset_helpers.py) which takes a dictionary of file paths as input. This is the essential function that needs to work for all subsequent steps. Run this function from any notebook, like [2.1 Examine Survey Results](02_01_examine_survey_results.py) to check if the environment variables and paths are correct.
-4. To run a notebook, like [2.1 Examine Survey Results](02_01_examine_survey_results.py) run the command below, this should open a new window in your default browser with the chosen notebook active.
+4. To run a notebook, like [2.1 Examine Survey Results](02_01_examine_survey_results.py) run the command below. After that, a new window should open in your default browser with the chosen notebook active.
 ```bash
 marimo edit 02_01_examine_survey_results.py
 ```
