@@ -17,7 +17,7 @@ TRACKS_PATH = os.path.join(METADATA_FOLDER, "tracks.csv")
 CSV_FOLDER = os.path.join(os.getenv("CSV_FOLDER"))
 
 # Original song audio files
-AUDIO_FOLDER = os.path.join(DATASET_FOLDER, "fma_large")
+AUDIO_FOLDER = os.getenv("AUDIO_FOLDER")
 
 # Stem audio files (vocals and instrumental)
 MODEL_FOLDER = os.getenv("MODEL_FOLDER")

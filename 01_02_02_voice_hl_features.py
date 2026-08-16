@@ -20,7 +20,6 @@ def _():
     import numpy as np
     import pandas as pd
 
-    from src.FMA.utils import get_audio_path, load
     from src.globals import (
         AUDIO_FOLDER,
         CSV_FOLDER,
@@ -30,6 +29,7 @@ def _():
         TRACKS_PATH,
         UVR_MODEL_PATH,
     )
+    from src.submodules.FMA.utils import get_audio_path, load
     from src.utils import get_trimmed_audio
 
     return CSV_FOLDER, mo, os, pd
@@ -71,7 +71,6 @@ def _(mo):
     - gender
     - accent
     - language
-    - timbre
     """)
     return
 

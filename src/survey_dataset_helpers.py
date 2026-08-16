@@ -159,6 +159,7 @@ def get_gender_distribution(row, track_df):
 
 # -- dataset converters --
 
+
 def load_answers_df(csv_path: str):
     """Create the survey answers df from the survey results
 
@@ -172,6 +173,7 @@ def load_answers_df(csv_path: str):
     surveyAnswers["editDate"] = parse_js_date(surveyAnswers["editDate"])
     surveyAnswers["createDate"] = parse_js_date(surveyAnswers["createDate"])
     return surveyAnswers
+
 
 def load_questions_df(csv_path: str, answers_df):
     """Create the survey questions df from the survey results
@@ -208,13 +210,23 @@ def load_participant_df(csv_path: str, answers_df: pd.DataFrame):
     participants["editDate"] = parse_js_date(participants["editDate"])
     participants["createDate"] = parse_js_date(participants["createDate"])
     start_time = participants["createDate"]
-    end_time = participants.index.to_series().apply(
-        lambda x: answers_df[answers_df.participantID == x].editDate.max()
-    )
-    participants["completionTime"] = end_time - start_time 
+    end_time = participants.index.to_series().apply(lambda x: answers_df[answers_df.participantID == x].editDate.max())
+    participants["completionTime"] = end_time - start_time
     participants["completionMinutes"] = participants["completionTime"].dt.total_seconds() / 60
     participants["gmsi_active_engagement"] = participants.apply(calc_gmsi_active_engagement_value, axis=1)
-    return participants # [participants.surveyCompleted]
+    return participants  # [participants.surveyCompleted]
+
+
+def load_tracks_df(csv_paths: dict) -> pd.DataFrame:
+    tracks_df = pd.read_csv(
+        csv_paths["tracks"],
+        index_col="track_id",
+    )
+
+    tracks_df.song_path = tracks_df.song_path.apply(lambda x: os.path.join(csv_paths.get("song_files", ""), x))
+    tracks_df.vocal_path = tracks_df.vocal_path.apply(lambda x: os.path.join(csv_paths.get("stem_files", ""), x))
+
+    return tracks_df
 
 
 def load_survey_data(csv_paths: dict):
@@ -234,10 +246,7 @@ def load_survey_data(csv_paths: dict):
     survey_data["questions_df"] = load_questions_df(csv_paths["questions"], survey_data["answers_df"])
 
     if csv_paths.get("tracks") is not None:
-        survey_data["track_df"] = pd.read_csv(
-            csv_paths["tracks"],
-            index_col="track_id",
-        )
+        survey_data["track_df"] = load_tracks_df(csv_paths)
         survey_data["questions_df"]["gender_distribution"] = survey_data["questions_df"].apply(
             lambda x: get_gender_distribution(x, survey_data["track_df"]), axis=1
         )
