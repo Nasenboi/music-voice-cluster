@@ -68,6 +68,7 @@ def _():
     from src.survey_dataset_helpers import load_survey_data
 
     return (
+        AUDIO_FOLDER,
         CSV_FOLDER,
         DATASET_FOLDER,
         PLOT_FOLDER,
@@ -87,13 +88,15 @@ def _():
 
 
 @app.cell
-def _(CSV_FOLDER, DATASET_FOLDER, os):
+def _(AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER, os):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
     CSV_PATHS = {
         "participants": os.path.join(SURVEY_FOLDER, "participants.csv"),
         "songs": os.path.join(SURVEY_FOLDER, "songs.csv"),
         "answers": os.path.join(SURVEY_FOLDER, "surveyAnswers.csv"),
         "questions": os.path.join(SURVEY_FOLDER, "surveyQuestions.csv"),
+        "song_files": os.path.join(AUDIO_FOLDER, "fma_large"),
+        "stem_files": os.path.join(AUDIO_FOLDER, "fma_large_stems"),
         "tracks": os.path.join(
             CSV_FOLDER,
             "LargeDataset",
@@ -322,11 +325,12 @@ def _(
 ):
     plot_correlation_scatter(
         title="CVSM (ART) Embeddings (Canberra Distance)",
-        #feature_name="CVSM (ART) Embeddings (Canberra Distance)",
+        # feature_name="CVSM (ART) Embeddings (Canberra Distance)",
         y=embedding_gda_df["distance_canberra"],
         x=questions_df["A_perc"],
         save_path=os.path.join(
-            PLOT_SAVE_DIR, "CVSM (ART) Embeddings Correlations Scatter (Canberra Distance).png"
+            PLOT_SAVE_DIR,
+            "CVSM (ART) Embeddings Correlation Scatter (Canberra Distance).png",
         ),
     )
     return

@@ -51,6 +51,7 @@ def _():
     from src.utils import get_trimmed_audio
 
     return (
+        AUDIO_FOLDER,
         CSV_FOLDER,
         DATASET_FOLDER,
         PLOT_FOLDER,
@@ -61,19 +62,20 @@ def _():
         os,
         plot_correlation_bar,
         plot_correlation_scatter,
-        plt,
         scale_df,
     )
 
 
 @app.cell
-def _(CSV_FOLDER, DATASET_FOLDER, os):
+def _(AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER, os):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
     CSV_PATHS = {
         "participants": os.path.join(SURVEY_FOLDER, "participants.csv"),
         "songs": os.path.join(SURVEY_FOLDER, "songs.csv"),
         "answers": os.path.join(SURVEY_FOLDER, "surveyAnswers.csv"),
         "questions": os.path.join(SURVEY_FOLDER, "surveyQuestions.csv"),
+        "song_files": os.path.join(AUDIO_FOLDER, "fma_large"),
+        "stem_files": os.path.join(AUDIO_FOLDER, "fma_large_stems"),
         "tracks": os.path.join(
             CSV_FOLDER,
             "LargeDataset",
@@ -108,49 +110,6 @@ def _(CSV_PATHS, load_survey_data):
     answer_a_b_ratio = SURVEY_DATA["answer_a_b_ratio"]
     track_df = SURVEY_DATA["track_df"]
     return questions_df, track_df
-
-
-@app.cell
-def _(PLOT_FOLDER, os, plt, track_df):
-    fig1, (ax11, ax12) = plt.subplots(1, 2, figsize=(14, 7))
-
-    genre_counts_1 = track_df["genre_top"].value_counts()
-    ax11.pie(
-        genre_counts_1.values,
-        labels=[
-            f"{label}: {count}" for label, count in genre_counts_1.items()
-        ],
-        autopct="%1.1f%%",
-        startangle=5,
-    )
-    ax11.set_title("Genre", fontsize=12, pad=10)
-
-    gender_counts_1 = track_df["pred_gender"].value_counts()
-    ax12.pie(
-        gender_counts_1.values,
-        labels=[
-            f"{label}: {count}" for label, count in gender_counts_1.items()
-        ],
-        autopct="%1.1f%%",
-        startangle=0,
-    )
-    ax12.set_title("Gender", fontsize=12, pad=10)
-
-    fig1.suptitle(
-        f"Dataset Feature Distributions (Tracks: {len(track_df)})",
-        fontsize=16,
-        fontweight="bold",
-        y=1.02,
-    )
-
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(PLOT_FOLDER, "survey_2", "feature_distributions.png"),
-        dpi=300,
-        bbox_inches="tight",
-    )
-    plt.show()
-    return
 
 
 @app.cell
@@ -213,33 +172,56 @@ def _(
 @app.cell
 def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
-        title="High Level Feature Correlations",
+        title="High-Level Feature Correlations",
         feature_df=hl_distances,
         target_feature=questions_df["A_perc"],
-        top_x=len(hl_distances.columns)-1,
-        save_path=os.path.join(PLOT_SAVE_DIR, "high_level_feature_correlations"),
+        top_x=len(hl_distances.columns) - 1,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "High-Level Feature Correlations (Individual).png"
+        ),
     )
     return
 
 
 @app.cell
-def _(hl_distances, plot_correlation_bar, questions_df):
+def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
         title="High Level Feature Correlations (Randomized)",
         feature_df=hl_distances[questions_df.randomized],
         target_feature=questions_df[questions_df.randomized]["A_perc"],
         top_x=len(hl_distances.columns),
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "High-Level Feature Correlations (Individual, Randomized).png",
+        ),
     )
     return
 
 
 @app.cell
-def _(PLOT_SAVE_DIR, hl_distances, plot_correlation_scatter, questions_df):
+def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_bar, questions_df):
+    plot_correlation_bar(
+        title="High Level Feature Correlations (Heuristic)",
+        feature_df=hl_distances[~questions_df.randomized],
+        target_feature=questions_df[~questions_df.randomized]["A_perc"],
+        top_x=len(hl_distances.columns),
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "High-Level Feature Correlations (Individual, Heuristic).png",
+        ),
+    )
+    return
+
+
+@app.cell
+def _(PLOT_SAVE_DIR, hl_distances, os, plot_correlation_scatter, questions_df):
     plot_correlation_scatter(
         feature_name="Gender",
         x=questions_df["A_perc"],
         y=hl_distances["pred_gender"],
-        plot_dir=PLOT_SAVE_DIR,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "Gender Feature Correlation Scatter.png"
+        ),
     )
     return
 
@@ -271,12 +253,21 @@ def _(get_global_distance_scores, questions_df, track_df):
 
 
 @app.cell
-def _(hl_feature_distances_df, plot_correlation_bar, questions_df):
+def _(
+    PLOT_SAVE_DIR,
+    hl_feature_distances_df,
+    os,
+    plot_correlation_bar,
+    questions_df,
+):
     plot_correlation_bar(
         title="High Level Feature Set Correlations (All)",
         feature_df=hl_feature_distances_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR, "High-Level Features Correlations (All).png"
+        ),
     )
     return
 
@@ -285,6 +276,7 @@ def _(hl_feature_distances_df, plot_correlation_bar, questions_df):
 def _(
     PLOT_SAVE_DIR,
     hl_feature_distances_df,
+    os,
     plot_correlation_scatter,
     questions_df,
 ):
@@ -293,7 +285,10 @@ def _(
         feature_name="High_Level_Feature_Set_Canberra",
         y=hl_feature_distances_df["distance_canberra"],
         x=questions_df["A_perc"],
-        plot_dir=PLOT_SAVE_DIR,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "High-Level Features Correlation Scatter (Canberra Distance).png",
+        ),
     )
     return
 

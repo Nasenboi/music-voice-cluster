@@ -28,17 +28,30 @@ def _():
     from speechbrain.inference.encoders import MelSpectrogramEncoder
 
     from src import load_singer_identity_model
-    from src.globals import (AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER,
-                             MODEL_FOLDER, PLOT_FOLDER, STEMS_FOLDER,
-                             TRACKS_PATH, UVR_MODEL_PATH)
+    from src.globals import (
+        AUDIO_FOLDER,
+        CSV_FOLDER,
+        DATASET_FOLDER,
+        MODEL_FOLDER,
+        PLOT_FOLDER,
+        STEMS_FOLDER,
+        TRACKS_PATH,
+        UVR_MODEL_PATH,
+    )
     from src.statistics.feature_correlation import (
-        get_all_distance_differences, get_global_distance_scores, scale_df)
-    from src.statistics.plotting import (plot_correlation_bar,
-                                         plot_correlation_scatter)
+        get_all_distance_differences,
+        get_global_distance_scores,
+        scale_df,
+    )
+    from src.statistics.plotting import (
+        plot_correlation_bar,
+        plot_correlation_scatter,
+    )
     from src.survey_dataset_helpers import load_survey_data
     from src.utils import get_trimmed_audio
 
     return (
+        AUDIO_FOLDER,
         CSV_FOLDER,
         DATASET_FOLDER,
         MODEL_FOLDER,
@@ -60,13 +73,15 @@ def _():
 
 
 @app.cell
-def _(CSV_FOLDER, DATASET_FOLDER, os):
+def _(AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER, os):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
     CSV_PATHS = {
         "participants": os.path.join(SURVEY_FOLDER, "participants.csv"),
         "songs": os.path.join(SURVEY_FOLDER, "songs.csv"),
         "answers": os.path.join(SURVEY_FOLDER, "surveyAnswers.csv"),
         "questions": os.path.join(SURVEY_FOLDER, "surveyQuestions.csv"),
+        "song_files": os.path.join(AUDIO_FOLDER, "fma_large"),
+        "stem_files": os.path.join(AUDIO_FOLDER, "fma_large_stems"),
         "tracks": os.path.join(
             CSV_FOLDER,
             "LargeDataset",
@@ -78,7 +93,7 @@ def _(CSV_FOLDER, DATASET_FOLDER, os):
 
 @app.cell
 def _(PLOT_FOLDER, os):
-    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2")
+    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2", "03_03_01")
     return (PLOT_SAVE_DIR,)
 
 
@@ -118,7 +133,9 @@ def _(mo):
 
 @app.cell
 def _(MelSpectrogramEncoder):
-    encoder = MelSpectrogramEncoder.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb-mel-spec")
+    encoder = MelSpectrogramEncoder.from_hparams(
+        source="speechbrain/spkrec-ecapa-voxceleb-mel-spec"
+    )
     SAMPLE_RATE = 16_000
     return SAMPLE_RATE, encoder
 
@@ -135,7 +152,11 @@ def _(SAMPLE_RATE, get_trimmed_audio):
 @app.cell
 def _(encoder, get_embedding, np, pd, scale_df, track_df):
     embedding_df = pd.DataFrame(
-        np.stack(track_df.song_path.apply(lambda x: get_embedding(x, encoder)).values),
+        np.stack(
+            track_df.song_path.apply(
+                lambda x: get_embedding(x, encoder)
+            ).values
+        ),
         columns=[f"emb_{e}" for e in range(192)],
         index=track_df.index,
     )
@@ -152,46 +173,67 @@ def _(embedding_df, get_global_distance_scores, questions_df):
 
 
 @app.cell
-def _(embedding_gda_df, plot_correlation_bar, questions_df):
+def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
         title="ECAPA-TDNN Embeddings Correlations (Randomized)",
         feature_df=embedding_gda_df[questions_df.randomized],
         target_feature=questions_df[questions_df.randomized]["A_perc"],
         top_x=10,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "ECAPA-TDNN Embeddings Correlations (Randomized).png",
+        ),
     )
     return
 
 
 @app.cell
-def _(embedding_gda_df, plot_correlation_bar, questions_df):
+def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
-        title="ECAPA-TDNN Embeddings Correlations (Max Entropy)",
+        title="ECAPA-TDNN Embeddings Correlations (Heuristic)",
         feature_df=embedding_gda_df[~questions_df.randomized],
         target_feature=questions_df[~questions_df.randomized]["A_perc"],
         top_x=10,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "ECAPA-TDNN Embeddings Correlations (Heuristic).png",
+        ),
     )
     return
 
 
 @app.cell
-def _(embedding_gda_df, plot_correlation_bar, questions_df):
+def _(PLOT_SAVE_DIR, embedding_gda_df, os, plot_correlation_bar, questions_df):
     plot_correlation_bar(
         title="ECAPA-TDNN Embeddings Correlations (All)",
         feature_df=embedding_gda_df,
         target_feature=questions_df["A_perc"],
         top_x=10,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "ECAPA-TDNN Embeddings Correlations (All).png",
+        ),
     )
     return
 
 
 @app.cell
-def _(PLOT_SAVE_DIR, embedding_gda_df, plot_correlation_scatter, questions_df):
+def _(
+    PLOT_SAVE_DIR,
+    embedding_gda_df,
+    os,
+    plot_correlation_scatter,
+    questions_df,
+):
     plot_correlation_scatter(
-        title="ECAPA-TDNN Embeddings (Cosine Distance)",
+        title="ECAPA-TDNN Embeddings (Cosine Similarity)",
         feature_name="ECAPA_Embeddings_Cosine",
         y=embedding_gda_df["distance_cosine"],
         x=questions_df["A_perc"],
-        plot_dir=PLOT_SAVE_DIR,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "ECAPA-TDNN Embeddings Correlation Scatter (Cosine Similarity).png",
+        ),
     )
     return
 
@@ -206,9 +248,13 @@ def _(mo):
 
 @app.cell
 def _(MODEL_FOLDER, load_singer_identity_model, os):
-    singer_ID_model_path = os.path.join(MODEL_FOLDER, "singer-identity", "byol")
+    singer_ID_model_path = os.path.join(
+        MODEL_FOLDER, "singer-identity", "byol"
+    )
     sID_SAMPLE_RATE = 44100
-    singer_ID_model = load_singer_identity_model(singer_ID_model_path, input_sr=sID_SAMPLE_RATE)
+    singer_ID_model = load_singer_identity_model(
+        singer_ID_model_path, input_sr=sID_SAMPLE_RATE
+    )
     singer_ID_model.eval()
     return sID_SAMPLE_RATE, singer_ID_model
 
@@ -234,7 +280,11 @@ def _(
 ):
     with torch.no_grad():
         sID_embedding_df = pd.DataFrame(
-            np.stack(track_df.song_path.apply(lambda x: get_singer_ID_embedding(x, singer_ID_model)).values),
+            np.stack(
+                track_df.song_path.apply(
+                    lambda x: get_singer_ID_embedding(x, singer_ID_model)
+                ).values
+            ),
             columns=[f"emb_{e}" for e in range(1000)],
             index=track_df.index,
         )
@@ -245,39 +295,29 @@ def _(
 
 @app.cell
 def _(get_global_distance_scores, questions_df, sID_embedding_df):
-    sID_embedding_gda_df = get_global_distance_scores(sID_embedding_df, questions_df)
+    sID_embedding_gda_df = get_global_distance_scores(
+        sID_embedding_df, questions_df
+    )
     return (sID_embedding_gda_df,)
 
 
 @app.cell
-def _(plot_correlation_bar, questions_df, sID_embedding_gda_df):
+def _(
+    PLOT_SAVE_DIR,
+    os,
+    plot_correlation_bar,
+    questions_df,
+    sID_embedding_gda_df,
+):
     plot_correlation_bar(
         title="Singer ID Embeddings Correlations (Randomized)",
         feature_df=sID_embedding_gda_df[questions_df.randomized],
         target_feature=questions_df[questions_df.randomized]["A_perc"],
         top_x=10,
-    )
-    return
-
-
-@app.cell
-def _(plot_correlation_bar, questions_df, sID_embedding_gda_df):
-    plot_correlation_bar(
-        title="Singer ID Embeddings Correlations (Max Entropy)",
-        feature_df=sID_embedding_gda_df[~questions_df.randomized],
-        target_feature=questions_df[~questions_df.randomized]["A_perc"],
-        top_x=10,
-    )
-    return
-
-
-@app.cell
-def _(plot_correlation_bar, questions_df, sID_embedding_gda_df):
-    plot_correlation_bar(
-        title="Singer ID Embeddings Correlations (All)",
-        feature_df=sID_embedding_gda_df,
-        target_feature=questions_df["A_perc"],
-        top_x=10,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "Singer ID Embeddings Correlations (Randomized).png",
+        ),
     )
     return
 
@@ -285,16 +325,62 @@ def _(plot_correlation_bar, questions_df, sID_embedding_gda_df):
 @app.cell
 def _(
     PLOT_SAVE_DIR,
+    os,
+    plot_correlation_bar,
+    questions_df,
+    sID_embedding_gda_df,
+):
+    plot_correlation_bar(
+        title="Singer ID Embeddings Correlations (Heuristic)",
+        feature_df=sID_embedding_gda_df[~questions_df.randomized],
+        target_feature=questions_df[~questions_df.randomized]["A_perc"],
+        top_x=10,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "Singer ID Embeddings Correlations (Heuristic).png",
+        ),
+    )
+    return
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    os,
+    plot_correlation_bar,
+    questions_df,
+    sID_embedding_gda_df,
+):
+    plot_correlation_bar(
+        title="Singer ID Embeddings Correlations (All)",
+        feature_df=sID_embedding_gda_df,
+        target_feature=questions_df["A_perc"],
+        top_x=10,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "Singer ID Embeddings Correlations (All).png",
+        ),
+    )
+    return
+
+
+@app.cell
+def _(
+    PLOT_SAVE_DIR,
+    os,
     plot_correlation_scatter,
     questions_df,
     sID_embedding_gda_df,
 ):
     plot_correlation_scatter(
-        title="Singer ID Embeddings (Cosine Distance)",
+        title="Singer ID Embeddings (Cosine Similarity)",
         feature_name="Singer_ID_Embeddings_Cosine",
         y=sID_embedding_gda_df["distance_cosine"],
         x=questions_df["A_perc"],
-        plot_dir=PLOT_SAVE_DIR,
+        save_path=os.path.join(
+            PLOT_SAVE_DIR,
+            "Singer ID Embeddings Correlation Scatter (Cosine Similarity).png",
+        ),
     )
     return
 

@@ -56,6 +56,7 @@ def _():
     from src.utils import get_trimmed_audio
 
     return (
+        AUDIO_FOLDER,
         CSV_FOLDER,
         DATASET_FOLDER,
         PLOT_FOLDER,
@@ -76,13 +77,15 @@ def _():
 
 
 @app.cell
-def _(CSV_FOLDER, DATASET_FOLDER, os):
+def _(AUDIO_FOLDER, CSV_FOLDER, DATASET_FOLDER, os):
     SURVEY_FOLDER = os.path.join(DATASET_FOLDER, "survey", "survey_2")
     CSV_PATHS = {
         "participants": os.path.join(SURVEY_FOLDER, "participants.csv"),
         "songs": os.path.join(SURVEY_FOLDER, "songs.csv"),
         "answers": os.path.join(SURVEY_FOLDER, "surveyAnswers.csv"),
         "questions": os.path.join(SURVEY_FOLDER, "surveyQuestions.csv"),
+        "song_files": os.path.join(AUDIO_FOLDER, "fma_large"),
+        "stem_files": os.path.join(AUDIO_FOLDER, "fma_large_stems"),
         "tracks": os.path.join(
             CSV_FOLDER,
             "LargeDataset",
@@ -94,7 +97,7 @@ def _(CSV_FOLDER, DATASET_FOLDER, os):
 
 @app.cell
 def _(PLOT_FOLDER, os):
-    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2")
+    PLOT_SAVE_DIR = os.path.join(PLOT_FOLDER, "survey_2", "03_02_02")
     return (PLOT_SAVE_DIR,)
 
 
@@ -311,14 +314,21 @@ def _(lr_sim_y, mean_squared_error, np, r2_score, y_pred_sim):
 
 
 @app.cell
-def _(plot_feature_connection, sim_coef, top_correlating_gemaps_features):
+def _(
+    PLOT_SAVE_DIR,
+    os,
+    plot_feature_connection,
+    sim_coef,
+    top_correlating_gemaps_features,
+):
     plot_feature_connection(
         set_1=sim_coef.index.values,
         set_2=top_correlating_gemaps_features[0],
         set_1_label="Similarity Ratings",
         set_2_label="Top Correlations",
         top_x=19,
-        title="Lasso Predictors Comparison",
+        title="Lasso Predictors and Top Correlation Features",
+        save_path = os.path.join(PLOT_SAVE_DIR, "Lasso Predictors and Top Correlation Features.png")
     )
     return
 
@@ -335,7 +345,7 @@ def _(
         gemaps_features_df[sim_coef.index.values],
         "Pairwise Pearson Correlation Coefficients (r)",
         save_path=os.path.join(
-            PLOT_SAVE_DIR, "gemaps_lasso_pairwise_correlation.png"
+            PLOT_SAVE_DIR, "GeMAPS Lasso Pairwise Feature Correlations.png"
         ),
         labelsize=12,
     )
@@ -413,14 +423,15 @@ def _(lr_gender_y, mean_squared_error, np, r2_score, y_gender_pred):
 
 
 @app.cell
-def _(gender_coef, plot_feature_connection, sim_coef):
+def _(PLOT_SAVE_DIR, gender_coef, os, plot_feature_connection, sim_coef):
     plot_feature_connection(
         set_1=sim_coef.index.values,
         set_2=gender_coef.index.values,
         set_1_label="Similarity Ratings",
         set_2_label="Gender Regression",
         top_x=19,
-        title="Lasso Predictors Comparison",
+        title="Lasso Predictors for Similarity Rating and Gender Regression",
+        save_path= os.path.join(PLOT_SAVE_DIR, "Lasso Predictors for Similarity Rating and Gender Regression.png")
     )
     return
 
